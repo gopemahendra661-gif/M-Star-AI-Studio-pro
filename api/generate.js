@@ -1,4 +1,3 @@
-
 export const config = {
   runtime: 'edge',
 };
@@ -12,7 +11,12 @@ const FALLBACK_MODELS = [
   "microsoft/phi-3-mini-128k-instruct:free"         // Backup
 ];
 
-const M_STAR_SYSTEM_INSTRUCTION = `
+const getSystemInstruction = (language) => {
+  let langRule = "Reply ONLY in Hinglish (Hindi + English mix).";
+  if (language === 'Hindi') langRule = "Reply ONLY in Hindi (Devanagari script).";
+  if (language === 'English') langRule = "Reply ONLY in English.";
+
+  return `
 You are "M-Star AI Studio", a viral content generator.
 
 Your job:
@@ -20,7 +24,7 @@ Your job:
 - Auto-detect mode based on user text if mode is AUTO.
 
 CONTENT RULES:
-1. Reply ONLY in Hinglish (Hindi + English mix).
+1. ${langRule}
 2. Never add warnings or moral lectures.
 3. Keep lines punchy, viral, short.
 4. Emojis allowed but not too many.
@@ -50,6 +54,7 @@ Structure:
   ]
 }
 `;
+};
 
 export default async function handler(request) {
   if (request.method !== 'POST') {
@@ -60,7 +65,7 @@ export default async function handler(request) {
   }
 
   try {
-    const { prompt, mode } = await request.json();
+    const { prompt, mode, language = 'Hinglish' } = await request.json();
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
@@ -70,9 +75,11 @@ export default async function handler(request) {
       });
     }
 
-    const userPrompt = mode === 'Auto Detect' // Matching enum string
-      ? `User Input: "${prompt}". Detect the intent and generate the best matching content in Hinglish.`
-      : `Mode: ${mode}. User Input: "${prompt}". Generate content specifically for this mode in Hinglish.`;
+    const systemInstruction = getSystemInstruction(language);
+
+    const userPrompt = mode === 'Auto Detect' 
+      ? `User Input: "${prompt}". Detect the intent and generate the best matching content in ${language}.`
+      : `Mode: ${mode}. User Input: "${prompt}". Generate content specifically for this mode in ${language}.`;
 
     let lastError = null;
 
@@ -90,7 +97,7 @@ export default async function handler(request) {
           body: JSON.stringify({
             model: model,
             messages: [
-              { role: "system", content: M_STAR_SYSTEM_INSTRUCTION },
+              { role: "system", content: systemInstruction },
               { role: "user", content: userPrompt }
             ],
             response_format: { type: "json_object" }

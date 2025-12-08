@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
+import LanguageSelector from './components/LanguageSelector';
 import ResultCard from './components/ResultCard';
 import { generateContent } from './services/openRouterService';
-import { GeneratorMode } from './types';
+import { GeneratorMode, Language } from './types';
 
 const App: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [mode, setMode] = useState<GeneratorMode>(GeneratorMode.AUTO);
+  const [language, setLanguage] = useState<Language>('Hinglish');
   const [results, setResults] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ const App: React.FC = () => {
     setResults([]);
 
     try {
-      const generatedItems = await generateContent(prompt, mode);
+      const generatedItems = await generateContent(prompt, mode, language);
       setResults(generatedItems);
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
@@ -43,10 +45,11 @@ const App: React.FC = () => {
       <main className="w-full max-w-3xl flex-1 px-4 pb-20">
         
         {/* Input Section - Sticky Top below header */}
-        <div className="sticky top-0 z-10 bg-slate-950/80 backdrop-blur-md pt-4 pb-2">
+        <div className="sticky top-0 z-10 bg-slate-950/80 backdrop-blur-md pt-2 pb-2 transition-all duration-300">
            <ModeSelector currentMode={mode} onSelectMode={setMode} />
+           <LanguageSelector currentLanguage={language} onSelectLanguage={setLanguage} />
            
-           <div className="mt-4 relative group">
+           <div className="mt-2 relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl opacity-50 group-hover:opacity-100 transition duration-500 blur-sm"></div>
             <div className="relative bg-slate-900 rounded-xl p-2 flex flex-col md:flex-row gap-2">
               <textarea
@@ -54,11 +57,11 @@ const App: React.FC = () => {
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={
-                    mode === GeneratorMode.AUTO ? "Type anything (e.g., 'Roast my friend Rahul' or 'Sad caption')..." :
-                    mode === GeneratorMode.ROAST ? "Who needs a roast? (e.g., 'My ex', 'Coding bugs')" :
-                    mode === GeneratorMode.COMPLIMENT ? "Who to compliment? (e.g., 'My crush', 'Bestie')" :
+                    mode === GeneratorMode.AUTO ? `Type anything in ${language}...` :
+                    mode === GeneratorMode.ROAST ? `Who needs a roast? (${language})` :
+                    mode === GeneratorMode.COMPLIMENT ? `Who to compliment? (${language})` :
                     mode === GeneratorMode.STYLISH_NAME ? "Enter name (e.g., 'Aditya')" :
-                    "Enter your topic or mood..."
+                    `Enter your topic (${language})...`
                 }
                 className="w-full bg-transparent text-white p-3 focus:outline-none resize-none h-14 md:h-auto overflow-hidden placeholder-slate-500"
                 rows={1}
@@ -112,14 +115,16 @@ const App: React.FC = () => {
             </div>
           ) : (
             !loading && (
-              <div className="text-center mt-20 text-slate-600 flex flex-col items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4 opacity-50">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                <p className="text-lg">Ready to go viral?</p>
-                <p className="text-sm opacity-60">Select a mode and start typing.</p>
+              <div className="text-center mt-10 text-slate-600 flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                </div>
+                <p className="text-lg font-medium text-slate-400">Ready to go viral?</p>
+                <p className="text-sm opacity-60 max-w-xs mx-auto mt-1">Select your language, choose a mode, and watch the magic happen.</p>
               </div>
             )
           )}

@@ -1,20 +1,19 @@
-
-import { GeneratorMode } from "../types";
+import { GeneratorMode, Language } from "../types";
 
 export const generateContent = async (
   prompt: string,
-  mode: GeneratorMode
+  mode: GeneratorMode,
+  language: Language
 ): Promise<string[]> => {
   
   try {
     // We now call our own Vercel Serverless Function
-    // This hides the API Key from the browser
     const response = await fetch("/api/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt, mode }),
+      body: JSON.stringify({ prompt, mode, language }),
     });
 
     const data = await response.json();

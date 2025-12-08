@@ -9,6 +9,8 @@ export enum GeneratorMode {
   HASHTAG = 'Hashtag'
 }
 
+export type Language = 'Hinglish' | 'Hindi' | 'English';
+
 export interface GeneratedItem {
   text: string;
   category?: string;
