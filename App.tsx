@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
 import ResultCard from './components/ResultCard';
-import { generateContent } from './services/geminiService';
+import { generateContent } from './services/openRouterService';
 import { GeneratorMode } from './types';
 
 const App: React.FC = () => {
@@ -128,7 +128,7 @@ const App: React.FC = () => {
       
       {/* Footer */}
       <footer className="fixed bottom-0 w-full bg-slate-900/90 backdrop-blur border-t border-slate-800 py-3 text-center text-slate-500 text-xs z-50">
-        <p>POWERED BY GEMINI 2.5 • M-STAR AI STUDIO</p>
+        <p>POWERED BY OPENROUTER AI • M-STAR AI STUDIO</p>
       </footer>
     </div>
   );
