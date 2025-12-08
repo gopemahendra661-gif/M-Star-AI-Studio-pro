@@ -2,13 +2,13 @@ export const config = {
   runtime: 'edge',
 };
 
-// 5 Free/Cheap Fallback Models (Order of priority)
+// 5 Best Free Fallback Models (High Quality & Speed)
 const FALLBACK_MODELS = [
-  "google/gemini-2.0-flash-thinking-exp:free",      // High Logic
-  "google/gemini-2.0-flash-lite-preview-02-05:free", // Fast
-  "meta-llama/llama-3.2-3b-instruct:free",          // Good Hinglish
-  "mistral/mistral-7b-instruct:free",               // Reliable
-  "microsoft/phi-3-mini-128k-instruct:free"         // Backup
+  "google/gemini-2.0-flash-lite-preview-02-05:free", // Super Fast & Smart
+  "meta-llama/llama-3.3-70b-instruct:free",          // Best Open Source Logic
+  "deepseek/deepseek-r1-distill-llama-70b:free",     // High Reasoning
+  "mistral/mistral-nemo:free",                       // Reliable & Quick
+  "microsoft/phi-3-medium-128k-instruct:free"        // Strong Backup
 ];
 
 const getSystemInstruction = (language) => {
@@ -44,7 +44,9 @@ MODES:
 7) HASHTAG MODE: Viral niche hashtags.
 
 OUTPUT FORMAT:
-You MUST return a valid JSON object. Do not include markdown code blocks (like \`\`\`json).
+You MUST return a VALID JSON object. 
+Do not wrap it in markdown code blocks like \`\`\`json. Just raw JSON string.
+
 Structure:
 {
   "results": [
@@ -78,14 +80,16 @@ export default async function handler(request) {
     const systemInstruction = getSystemInstruction(language);
 
     const userPrompt = mode === 'Auto Detect' 
-      ? `User Input: "${prompt}". Detect the intent and generate the best matching content in ${language}.`
-      : `Mode: ${mode}. User Input: "${prompt}". Generate content specifically for this mode in ${language}.`;
+      ? `User Input: "${prompt}". Detect the intent and generate the best matching content in ${language}. Return JSON.`
+      : `Mode: ${mode}. User Input: "${prompt}". Generate content specifically for this mode in ${language}. Return JSON.`;
 
     let lastError = null;
 
     // Fallback Loop
     for (const model of FALLBACK_MODELS) {
       try {
+        console.log(`Trying model: ${model}`);
+        
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -100,36 +104,55 @@ export default async function handler(request) {
               { role: "system", content: systemInstruction },
               { role: "user", content: userPrompt }
             ],
-            response_format: { type: "json_object" }
+            temperature: 0.8,
+            // Removed response_format: { type: "json_object" } to maximize compatibility with all models
           })
         });
 
         if (!response.ok) {
-          throw new Error(`OpenRouter API Error: ${response.statusText}`);
+          const errText = await response.text();
+          throw new Error(`OpenRouter API Error (${response.status}): ${errText}`);
         }
 
         const data = await response.json();
         const contentString = data.choices?.[0]?.message?.content;
 
-        if (!contentString) throw new Error("Empty response");
+        if (!contentString) throw new Error("Empty response from AI");
 
-        // Clean JSON parsing
-        const cleanJson = contentString.replace(/```json\n?|```/g, "").trim();
+        // Aggressive JSON Cleaning
+        let cleanJson = contentString.trim();
+        
+        // Remove markdown code blocks if present
+        cleanJson = cleanJson.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
+        
+        // Find the first '{' and last '}'
         const startIndex = cleanJson.indexOf("{");
         const endIndex = cleanJson.lastIndexOf("}");
         
-        if (startIndex === -1 || endIndex === -1) throw new Error("Invalid JSON");
+        if (startIndex !== -1 && endIndex !== -1) {
+          cleanJson = cleanJson.substring(startIndex, endIndex + 1);
+        } else {
+           throw new Error("Could not find JSON in response");
+        }
 
-        const jsonStr = cleanJson.substring(startIndex, endIndex + 1);
-        const parsed = JSON.parse(jsonStr);
+        let parsed;
+        try {
+          parsed = JSON.parse(cleanJson);
+        } catch (e) {
+          throw new Error("JSON Parse Failed");
+        }
 
         let results = [];
         if (parsed.results && Array.isArray(parsed.results)) {
           results = parsed.results;
         } else {
-          results = contentString.split('\n').filter(l => l.length > 5);
+          // If JSON is valid but structure is wrong, fallback to splitting lines
+          results = cleanJson.split('\n').filter(l => l.length > 5);
         }
 
+        if (results.length === 0) throw new Error("No results found in JSON");
+
+        // If successful, return immediately
         return new Response(JSON.stringify({ results }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
@@ -138,10 +161,12 @@ export default async function handler(request) {
       } catch (error) {
         console.warn(`Model ${model} failed:`, error.message);
         lastError = error;
+        // Continue to next model in loop
       }
     }
 
-    throw new Error("All AI models are busy. Please try again.");
+    // If loop finishes without success
+    throw new Error(`All AI models failed. Last error: ${lastError?.message || 'Unknown'}`);
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
