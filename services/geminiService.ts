@@ -1,8 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { GeneratorMode } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const M_STAR_SYSTEM_INSTRUCTION = `
 You are "M-Star AI Studio", a viral content generator engine.
 
@@ -36,6 +34,10 @@ export const generateContent = async (
   mode: GeneratorMode
 ): Promise<string[]> => {
   try {
+    // Initialize the client here to ensure we use the current environment context
+    // and avoid top-level crashes if process.env is not yet available during initial load.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
     const userPrompt = mode === GeneratorMode.AUTO 
       ? `User Input: "${prompt}". Detect the intent and generate the best matching content.`
       : `Mode: ${mode}. User Input: "${prompt}". Generate content specifically for this mode.`;
