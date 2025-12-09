@@ -84,7 +84,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
       className="group relative bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 animate-fadeIn shadow-sm hover:shadow-md dark:shadow-none"
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      <p className="text-slate-800 dark:text-slate-200 text-lg font-medium leading-relaxed pr-2 pb-12 md:pb-0 md:pr-32">
+      <p className="text-slate-800 dark:text-slate-200 text-lg font-medium leading-relaxed pr-2 pb-12 md:pb-0 md:pr-32 whitespace-pre-line">
         {content}
       </p>
       

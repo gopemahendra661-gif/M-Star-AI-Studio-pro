@@ -32,14 +32,20 @@ CONTENT RULES:
 1. Never add warnings or moral lectures.
 2. Keep lines punchy, viral, short (1-2 lines max).
 3. Use 1-3 emojis per line (max).
-4. All responses must be unique & creative.
+4. All responses must be completely unique & creative.
 5. Roasts: funny, witty, harmless.
 6. Compliments: smooth, classy.
 7. Bios: 1-2 lines + font variations.
 8. Names: 8-10 stylish font versions.
 9. Captions/Status: 6-8 viral lines.
 10. Hashtags: 8-12 relevant hashtags.
-11. Shayari: Deep, poetic, rhyming (2 lines/Sher or 4 lines). Emotional & touching.
+11. SHAYARI (IMPORTANT): 
+    - MUST be poetic, deep, and emotional. 
+    - STRICT RHYMING (Kafiya) is mandatory. 
+    - Use Urdu/Hindi poetic words (like Ishq, Dard, Khwab, Zindagi) in Hinglish.
+    - Format: Use '\\n' for line breaks. 
+    - Style: 2-line (Sher) or 4-line stanzas. 
+    - Do NOT write simple conversational sentences. Make it sound like Mirza Ghalib or Gulzar.
 12. Quotes: Motivational, life lessons, attitude, or deep reality.
 
 MODE: ${mode}
@@ -47,9 +53,8 @@ MODE: ${mode}
 OUTPUT FORMAT (STRICTLY FOLLOW):
 {
   "results": [
-    "First generated content here",
-    "Second generated content here",
-    "Third generated content here"
+    "Line 1 content",
+    "Line 1\\nLine 2 (for Shayari)"
   ]
 }
 
@@ -57,7 +62,7 @@ Generate exactly 8 items for all modes except:
 - Stylish Name: 10 items
 - Hashtag: 12 items
 - Bio: 6 items
-- Shayari: 6 items (focus on quality rhyme)
+- Shayari: 6 items (High Quality)
 `;
 };
 
