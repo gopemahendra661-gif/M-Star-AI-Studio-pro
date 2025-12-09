@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
 import LanguageSelector from './components/LanguageSelector';
 import ResultCard from './components/ResultCard';
 import { generateContent } from './services/openRouterService';
 import { GeneratorMode, Language } from './types';
+
+// Add type definition for Web Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 const App: React.FC = () => {
   const [prompt, setPrompt] = useState('');
@@ -13,6 +21,10 @@ const App: React.FC = () => {
   const [results, setResults] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Voice Input State
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -38,6 +50,74 @@ const App: React.FC = () => {
     }
   };
 
+  const toggleListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setError("Voice input is not supported in this browser.");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    
+    // Set language based on selected language
+    if (language === 'Hindi') {
+      recognition.lang = 'hi-IN';
+    } else if (language === 'English') {
+      recognition.lang = 'en-US';
+    } else {
+      recognition.lang = 'en-IN'; // Works best for Hinglish/Indian accent
+    }
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError(null);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+      // Don't show error for 'no-speech' as it's common when cancelling
+      if (event.error !== 'no-speech') {
+        setError("Could not hear you. Please try again.");
+        setTimeout(() => setError(null), 3000);
+      }
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setPrompt((prev) => {
+        const newText = prev ? `${prev} ${transcript}` : transcript;
+        return newText;
+      });
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center">
       <Header />
@@ -52,25 +132,58 @@ const App: React.FC = () => {
            <div className="mt-2 relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl opacity-50 group-hover:opacity-100 transition duration-500 blur-sm"></div>
             <div className="relative bg-slate-900 rounded-xl p-2 flex flex-col md:flex-row gap-2">
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                    mode === GeneratorMode.AUTO ? `Type anything in ${language}...` :
-                    mode === GeneratorMode.ROAST ? `Who needs a roast? (${language})` :
-                    mode === GeneratorMode.COMPLIMENT ? `Who to compliment? (${language})` :
-                    mode === GeneratorMode.STYLISH_NAME ? "Enter name (e.g., 'Aditya')" :
-                    `Enter your topic (${language})...`
-                }
-                className="w-full bg-transparent text-white p-3 focus:outline-none resize-none h-14 md:h-auto overflow-hidden placeholder-slate-500"
-                rows={1}
-              />
+              <div className="relative w-full">
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                      mode === GeneratorMode.AUTO ? `Type or speak in ${language}...` :
+                      mode === GeneratorMode.ROAST ? `Who needs a roast? (${language})` :
+                      mode === GeneratorMode.COMPLIMENT ? `Who to compliment? (${language})` :
+                      mode === GeneratorMode.STYLISH_NAME ? "Enter name (e.g., 'Aditya')" :
+                      `Enter your topic (${language})...`
+                  }
+                  className="w-full bg-transparent text-white p-3 pr-12 focus:outline-none resize-none h-14 md:h-auto overflow-hidden placeholder-slate-500 rounded-lg"
+                  rows={1}
+                />
+                
+                {/* Voice Input Button */}
+                <button
+                  onClick={toggleListening}
+                  className={`
+                    absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all duration-300
+                    ${isListening 
+                      ? 'bg-red-500/20 text-red-500 animate-pulse ring-2 ring-red-500/50' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }
+                  `}
+                  title="Voice Input"
+                >
+                  {isListening ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                      <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+                      <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+                      <line x1="12" y1="19" x2="12" y2="23"></line>
+                      <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                      <line x1="12" y1="19" x2="12" y2="23"></line>
+                      <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                  )}
+                </button>
+              </div>
+
               <button
                 onClick={handleGenerate}
                 disabled={loading || !prompt.trim()}
                 className={`
-                  rounded-lg px-6 py-3 font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center min-w-[120px]
+                  rounded-lg px-6 py-3 font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center min-w-[120px] h-14 md:h-auto
                   ${loading || !prompt.trim()
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                     : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-purple-500/50 hover:scale-105 active:scale-95'
@@ -109,7 +222,12 @@ const App: React.FC = () => {
                </div>
                <div className="grid grid-cols-1 gap-4">
                   {results.map((item, idx) => (
-                    <ResultCard key={idx} content={item} index={idx} />
+                    <ResultCard 
+                      key={idx} 
+                      content={item} 
+                      index={idx} 
+                      language={language}
+                    />
                   ))}
                </div>
             </div>
