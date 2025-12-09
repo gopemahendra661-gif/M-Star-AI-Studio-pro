@@ -1,15 +1,17 @@
 // Standard Node.js Serverless Function
 export const config = {
-  maxDuration: 30, // Increased duration for DeepSeek/Reasoning models
+  maxDuration: 60, // Maximum allowed duration for reliable fallbacks
 };
 
-// User Requested Models (Mapped to valid OpenRouter Free IDs)
-const FALLBACK_MODELS = [
-  "deepseek/deepseek-v3:free",                   // DeepSeek V3 (Primary)
-  "deepseek/deepseek-r1:free",                   // DeepSeek R1 (Reasoning)
-  "meta-llama/llama-3.3-70b-instruct:free",      // Llama 3.3 70B (Reliable)
-  "google/gemini-2.0-flash-thinking-exp:free",   // Gemini Flash Thinking
-  "mistralai/mistral-7b-instruct:free"           // Mistral 7B (Solid Backup)
+// 100% FREE OpenRouter Models List (Ordered by Smartness -> Speed -> Reliability)
+const FREE_MODELS = [
+  "deepseek/deepseek-v3:free",                   // Smartest Free Model
+  "deepseek/deepseek-r1:free",                   // Reasoning Model
+  "google/gemini-2.0-flash-thinking-exp:free",   // Google's Free Experimental
+  "meta-llama/llama-3.3-70b-instruct:free",      // High Quality Llama
+  "meta-llama/llama-3-8b-instruct:free",         // Fast & Reliable
+  "mistralai/mistral-7b-instruct:free",          // Solid Backup
+  "microsoft/phi-3-mini-128k-instruct:free"      // Emergency Backup
 ];
 
 const getSystemInstruction = (language) => {
@@ -84,7 +86,7 @@ export default async function handler(req, res) {
 
     if (!apiKey) {
       console.error("API Key Missing");
-      return res.status(500).json({ error: 'Server Config Error: API Key missing in Vercel.' });
+      return res.status(500).json({ error: 'Server Config Error: OPENROUTER_API_KEY is missing in Vercel.' });
     }
 
     const systemInstruction = getSystemInstruction(language);
@@ -95,12 +97,12 @@ export default async function handler(req, res) {
 
     let lastError = null;
 
-    // Fallback Loop
-    for (const model of FALLBACK_MODELS) {
+    // Iterate through FREE models
+    for (const model of FREE_MODELS) {
       try {
-        console.log(`Trying model: ${model}`);
+        console.log(`Trying Free Model: ${model}`);
         
-        // Timeout 25s for DeepSeek models which can be slower
+        // Timeout 25s (Generous for free tier)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 25000);
 
@@ -118,19 +120,23 @@ export default async function handler(req, res) {
               { role: "system", content: systemInstruction },
               { role: "user", content: userPrompt }
             ],
-            temperature: 0.8,
-            max_tokens: 1500,
+            temperature: 0.85, // High creativity
+            max_tokens: 1200,
           }),
           signal: controller.signal
         });
 
         clearTimeout(timeoutId);
 
+        // Special handling for Rate Limits on Free Tier
+        if (response.status === 429) {
+          console.warn(`Model ${model} Rate Limited (429). Trying next model...`);
+          throw new Error("Rate limit exceeded for this model");
+        }
+
         if (!response.ok) {
           const errText = await response.text();
-          if (response.status === 401) throw new Error("Invalid API Key");
-          // If 404/400, model might be down or invalid ID, throw to try next
-          throw new Error(`API Error (${response.status}): ${errText}`);
+          throw new Error(`OpenRouter Error (${response.status}): ${errText}`);
         }
 
         const data = await response.json();
@@ -138,14 +144,14 @@ export default async function handler(req, res) {
 
         if (!contentString) throw new Error("Empty response from AI");
 
-        // --- DEEPSEEK CLEANING LOGIC ---
-        // DeepSeek R1 often returns <think>...</think> tags. We must remove them.
+        // --- RESPONSE CLEANER ---
+        // 1. Remove DeepSeek <think> tags
         let cleanJson = contentString.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
         
-        // Remove markdown
+        // 2. Remove Markdown code blocks
         cleanJson = cleanJson.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
         
-        // Extract JSON object
+        // 3. Extract pure JSON
         const startIndex = cleanJson.indexOf("{");
         const endIndex = cleanJson.lastIndexOf("}");
         
@@ -162,26 +168,29 @@ export default async function handler(req, res) {
              results = parsed;
           }
         } catch (e) {
-          console.log("JSON Parse Failed, falling back to line split. Raw:", cleanJson);
-          // Fallback: Split by lines if JSON fails
+          console.log("JSON Parse Failed, using fallback splitter.");
+          // Fallback: Line Splitter
           results = cleanJson.split('\n')
             .map(line => line.replace(/^\d+\.\s*/, '').replace(/^- \s*/, '').replace(/^"|",?$/g, '').trim())
             .filter(l => l.length > 5 && !l.includes("Results") && !l.includes("Here is") && !l.includes("{") && !l.includes("}"));
         }
 
-        if (results.length === 0) throw new Error("No results found in AI response");
+        if (results.length === 0) throw new Error("No usable results found in response");
 
+        // Success!
         return res.status(200).json({ results });
 
       } catch (error) {
         console.warn(`Model ${model} failed:`, error.message);
         lastError = error;
-        // Continue to next model
+        // Automatically loops to the next model in FREE_MODELS
       }
     }
 
-    console.error("All models failed:", lastError);
-    return res.status(503).json({ error: `AI Busy: ${lastError?.message || 'Try again later'}` });
+    console.error("All free models failed:", lastError);
+    return res.status(503).json({ 
+      error: `All Free Models are busy right now. Please wait 1 minute and try again. (Reason: ${lastError?.message})` 
+    });
 
   } catch (error) {
     console.error("Handler Error:", error);
