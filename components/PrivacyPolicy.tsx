@@ -30,59 +30,144 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
       </button>
 
       <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl">
-        <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 mb-2">
           Privacy Policy
         </h1>
+        <p className="text-slate-500 text-sm mb-6">Last Updated: October 2025</p>
         
         <div className="space-y-6 text-slate-400 text-sm md:text-base leading-relaxed">
+          <p>
+            Welcome to <strong>M-Star AI Studio</strong>. We respect your privacy and are committed to protecting your personal data. This Privacy Policy explains what data we collect, how we use it, and your rights regarding your information.
+          </p>
+
           <section>
             <h2 className="text-lg font-semibold text-slate-200 mb-2">1. Introduction</h2>
             <p>
-              Welcome to <strong>M-Star AI Studio</strong>. We value your trust and are committed to protecting your privacy. This policy outlines how we handle your data when you use our AI content generation services.
+              M-Star AI Studio is an AI-powered content generator that creates roasts, compliments, captions, stylish names, hashtags, and more. We only collect minimal information necessary for app functionality and we do not store or sell personal data.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-200 mb-2">2. Data Collection</h2>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>
-                <strong>User Prompts:</strong> Text inputs and voice commands you provide are processed solely to generate content.
-              </li>
-              <li>
-                <strong>Voice Data:</strong> If you use voice input, your browser's native Speech Recognition API processes the audio. We do not store any audio recordings.
-              </li>
-              <li>
-                <strong>Usage Data:</strong> We may collect anonymous technical data (like browser type) to improve app performance.
-              </li>
-            </ul>
+            <h2 className="text-lg font-semibold text-slate-200 mb-2">2. Data We Collect</h2>
+            
+            <div className="ml-4 space-y-3">
+              <div>
+                <h3 className="text-slate-300 font-medium">a. User Prompts (Text Input)</h3>
+                <ul className="list-disc pl-5 text-slate-400/90">
+                  <li>Any text you enter is used only to generate AI responses.</li>
+                  <li>No text is stored permanently on our servers.</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-slate-300 font-medium">b. Voice Data</h3>
+                <p>If you use voice input:</p>
+                <ul className="list-disc pl-5 text-slate-400/90">
+                  <li>Audio is processed by the device/browser's native Speech Recognition API.</li>
+                  <li>We do not record, store, or transmit audio files.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-slate-300 font-medium">c. Technical / Usage Data (Anonymous)</h3>
+                <p>We may collect non-identifiable data such as:</p>
+                <ul className="list-disc pl-5 text-slate-400/90">
+                  <li>Browser type</li>
+                  <li>Device type</li>
+                  <li>Performance metrics</li>
+                </ul>
+                <p className="mt-1">This helps us improve app functionality. No personal data is collected.</p>
+              </div>
+            </div>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-200 mb-2">3. How We Use Data</h2>
-            <p>
-              We use your inputs strictly to generate the requested content (roasts, bios, captions, etc.). Your text prompts are sent to our AI providers (OpenRouter) to generate the response. We do not sell your data to third parties.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-slate-200 mb-2">4. Third-Party Services</h2>
-            <p>We rely on the following services:</p>
+            <h2 className="text-lg font-semibold text-slate-200 mb-2">3. How We Use Your Data</h2>
+            <p>We use the data you provide only for the following purposes:</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
-              <li><strong>OpenRouter AI:</strong> For Large Language Model (LLM) processing.</li>
-              <li><strong>Vercel:</strong> For hosting the application and serverless functions.</li>
+              <li>To generate AI responses (roasts, bios, captions, etc.)</li>
+              <li>To improve app performance and user experience</li>
+              <li>To ensure the app works smoothly on your device</li>
             </ul>
+            <p className="mt-2">
+              Your text prompts may be securely sent to our AI provider (OpenRouter) only to generate the requested output. 
+              <strong> We do NOT sell, share, or use your data for marketing.</strong>
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-slate-200 mb-2">4. Third-Party Services We Use</h2>
+            <div className="ml-4 space-y-3">
+              <div>
+                <h3 className="text-slate-300 font-medium">a. OpenRouter AI</h3>
+                <p>Used to process user prompts and generate AI responses.</p>
+              </div>
+              <div>
+                <h3 className="text-slate-300 font-medium">b. Vercel</h3>
+                <p>Used for hosting and running serverless functions.</p>
+              </div>
+              <p>These services may temporarily process your data only to fulfill the functionality of the app. They do not store your data permanently.</p>
+            </div>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-slate-200 mb-2">5. Data Retention</h2>
+            <p>M-Star AI Studio is designed to be <strong>stateless</strong>, meaning:</p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>We do not store your chat history</li>
+              <li>We do not keep copies of your text or audio</li>
+              <li>Data is processed in real time and then discarded</li>
+              <li>Closing the app clears your local session</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-slate-200 mb-2">6. Permissions Used</h2>
+            <h3 className="text-slate-300 font-medium">RECORD_AUDIO</h3>
+            <p>Required only for voice input.</p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>We do not store audio</li>
+              <li>We do not transmit your raw voice to any server</li>
+              <li>Voice is processed locally by your device/browser</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-slate-200 mb-2">7. Children’s Privacy</h2>
             <p>
-              M-Star AI Studio is designed to be <strong>stateless</strong>. We do not permanently store your conversation history or generated results on our servers. Once you close the page, the data is cleared from your local view.
+              Our app is not intended for children under 13. We do not knowingly collect personal data from minors.
             </p>
           </section>
 
-          <section className="pt-4 border-t border-slate-800">
+          <section>
+            <h2 className="text-lg font-semibold text-slate-200 mb-2">8. Security Measures</h2>
+            <p>
+              We use secure HTTPS/TLS encryption for all communication. We do not store any sensitive data, and therefore risk is minimized.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-slate-200 mb-2">9. Your Rights</h2>
+            <p>Since we do not store personal data:</p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>There is no data to access, delete, or modify</li>
+              <li>You can stop using the app at any time</li>
+              <li>Closing the app clears your session automatically</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-slate-200 mb-2">10. Contact Us</h2>
+            <p>If you have any questions about this Privacy Policy, contact us at:</p>
+            <div className="mt-2 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+              <p><strong>Email:</strong> <a href="mailto:chillforai@gmail.com" className="text-pink-400 hover:underline">chillforai@gmail.com</a></p>
+              <p className="mt-1"><strong>Developer:</strong> Mahendra Mirdha</p>
+            </div>
+          </section>
+
+          <section className="pt-4 border-t border-slate-800 text-center">
             <p className="text-xs text-slate-500">
-              Last Updated: October 2025
+              © 2025 M-Star AI Studio. All rights reserved.
             </p>
           </section>
         </div>
