@@ -3,16 +3,15 @@ export const config = {
   maxDuration: 60, // Maximum allowed duration for reliable fallbacks
 };
 
-// 100% FREE OpenRouter Models List (Ordered by Reliability & Speed)
-// Updated to remove dead endpoints and prioritize high-availability models
+// 100% FREE & STABLE OpenRouter Models List
+// Removed all "Experimental", "Preview" or "DeepSeek" models that cause 404/400 errors or high traffic issues.
 const FREE_MODELS = [
-  "meta-llama/llama-3.2-3b-instruct:free",       // SUPER FAST & STABLE (Best for fallback)
-  "google/gemma-2-9b-it:free",                   // Google's Always-On Free Model
-  "mistralai/mistral-7b-instruct:free",          // Reliable Workhorse
+  "meta-llama/llama-3-8b-instruct:free",         // Most Reliable & Free
+  "google/gemma-2-9b-it:free",                   // Google's Stable Free Model
+  "mistralai/mistral-7b-instruct:free",          // Solid Backup
   "huggingfaceh4/zephyr-7b-beta:free",           // Good for creative text
-  "meta-llama/llama-3-8b-instruct:free",         // Standard Llama 3
-  "deepseek/deepseek-v3:free",                   // Smart but often busy
-  "deepseek/deepseek-r1:free"                    // Reasoning (often busy)
+  "meta-llama/llama-3.2-3b-instruct:free",       // Fast & Lightweight
+  "microsoft/phi-3-mini-128k-instruct:free"      // Backup
 ];
 
 const getSystemInstruction = (language) => {
@@ -104,7 +103,7 @@ export default async function handler(req, res) {
       try {
         console.log(`Trying Free Model: ${model}`);
         
-        // Timeout 25s (Generous for free tier)
+        // Timeout 25s
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 25000);
 
@@ -113,7 +112,7 @@ export default async function handler(req, res) {
           headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://m-star-ai.vercel.app",
+            "HTTP-Referer": "https://m-star-ai.vercel.app", 
             "X-Title": "M-Star AI Studio",
           },
           body: JSON.stringify({
@@ -122,23 +121,24 @@ export default async function handler(req, res) {
               { role: "system", content: systemInstruction },
               { role: "user", content: userPrompt }
             ],
-            temperature: 0.85, // High creativity
-            max_tokens: 1200,
+            temperature: 0.85,
+            max_tokens: 1000,
           }),
           signal: controller.signal
         });
 
         clearTimeout(timeoutId);
 
-        // Special handling for Rate Limits on Free Tier
+        // Special handling for Rate Limits
         if (response.status === 429) {
-          console.warn(`Model ${model} Rate Limited (429). Trying next model...`);
-          throw new Error("Rate limit exceeded for this model");
+          console.warn(`Model ${model} Rate Limited (429). Skipping.`);
+          continue; // Try next model immediately
         }
 
-        if (response.status === 404) {
-          console.warn(`Model ${model} not found (404). Removing from rotation.`);
-          throw new Error("Model endpoint not found");
+        // Handle 404/400 (Model unavailable)
+        if (response.status === 404 || response.status === 400) {
+          console.warn(`Model ${model} not found/invalid (${response.status}). Skipping.`);
+          continue;
         }
 
         if (!response.ok) {
@@ -152,13 +152,9 @@ export default async function handler(req, res) {
         if (!contentString) throw new Error("Empty response from AI");
 
         // --- RESPONSE CLEANER ---
-        // 1. Remove DeepSeek <think> tags
         let cleanJson = contentString.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-        
-        // 2. Remove Markdown code blocks
         cleanJson = cleanJson.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
         
-        // 3. Extract pure JSON
         const startIndex = cleanJson.indexOf("{");
         const endIndex = cleanJson.lastIndexOf("}");
         
@@ -175,7 +171,6 @@ export default async function handler(req, res) {
              results = parsed;
           }
         } catch (e) {
-          console.log("JSON Parse Failed, using fallback splitter.");
           // Fallback: Line Splitter
           results = cleanJson.split('\n')
             .map(line => line.replace(/^\d+\.\s*/, '').replace(/^- \s*/, '').replace(/^"|",?$/g, '').trim())
@@ -192,13 +187,13 @@ export default async function handler(req, res) {
       } catch (error) {
         console.warn(`Model ${model} failed:`, error.message);
         lastError = error;
-        // Automatically loops to the next model in FREE_MODELS
+        // Continue to next model
       }
     }
 
     console.error("All free models failed:", lastError);
     return res.status(503).json({ 
-      error: `System Busy: Please wait 10 seconds and try again. (Last Error: ${lastError?.message})` 
+      error: `All AI models are currently busy. Please wait 10 seconds and try again. (Reason: ${lastError?.message})` 
     });
 
   } catch (error) {
