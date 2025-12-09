@@ -269,7 +269,7 @@ const App: React.FC = () => {
       
       {/* Footer */}
       <footer className="fixed bottom-0 w-full bg-slate-900/90 backdrop-blur border-t border-slate-800 py-3 flex justify-center items-center gap-4 text-xs z-50">
-        <span className="text-slate-500">POWERED BY OPENROUTER AI • M-STAR AI STUDIO</span>
+        <span className="text-slate-500">M-STAR AI STUDIO</span>
         <span className="w-1 h-1 rounded-full bg-slate-700"></span>
         <button 
           onClick={() => setView('privacy')} 
