@@ -39,6 +39,8 @@ CONTENT RULES:
 8. Names: 8-10 stylish font versions.
 9. Captions/Status: 6-8 viral lines.
 10. Hashtags: 8-12 relevant hashtags.
+11. Shayari: Deep, poetic, rhyming (2 lines/Sher or 4 lines). Emotional & touching.
+12. Quotes: Motivational, life lessons, attitude, or deep reality.
 
 MODE: ${mode}
 
@@ -55,6 +57,7 @@ Generate exactly 8 items for all modes except:
 - Stylish Name: 10 items
 - Hashtag: 12 items
 - Bio: 6 items
+- Shayari: 6 items (focus on quality rhyme)
 `;
 };
 

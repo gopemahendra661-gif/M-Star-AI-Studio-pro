@@ -19,10 +19,15 @@ declare global {
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [view, setView] = useState<'home' | 'privacy'>('home');
+  const [showSaved, setShowSaved] = useState(false);
+  
   const [prompt, setPrompt] = useState('');
   const [mode, setMode] = useState<GeneratorMode>(GeneratorMode.AUTO);
   const [language, setLanguage] = useState<Language>('Hinglish');
+  
   const [results, setResults] = useState<string[]>([]);
+  const [savedResults, setSavedResults] = useState<string[]>([]);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -31,7 +36,30 @@ const App: React.FC = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // Load saved items from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('mstar_saved_items');
+    if (saved) {
+      try {
+        setSavedResults(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse saved items", e);
+      }
+    }
+  }, []);
+
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+  const toggleSaveItem = (content: string) => {
+    let newSaved;
+    if (savedResults.includes(content)) {
+      newSaved = savedResults.filter(item => item !== content);
+    } else {
+      newSaved = [content, ...savedResults];
+    }
+    setSavedResults(newSaved);
+    localStorage.setItem('mstar_saved_items', JSON.stringify(newSaved));
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -39,6 +67,7 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     setResults([]);
+    setShowSaved(false); // Switch back to results view
 
     try {
       const generatedItems = await generateContent(prompt, mode, language);
@@ -133,6 +162,9 @@ const App: React.FC = () => {
       }
     };
   }, []);
+
+  // Determine what to display
+  const displayItems = showSaved ? savedResults : results;
 
   return (
     <div className={isDarkMode ? 'dark' : ''}>
@@ -267,36 +299,61 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {results.length > 0 ? (
-                  <div className="space-y-4 pb-12">
-                    <div className="flex items-center justify-between px-2 mb-2">
-                      <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Generated Results</h2>
-                      <span className="text-xs font-mono text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded">
-                        {results.length} ITEMS
-                      </span>
+                {/* Results Header with Saved Toggle */}
+                {(results.length > 0 || savedResults.length > 0) && (
+                  <div className="flex items-center justify-between px-2 mb-2">
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setShowSaved(false)}
+                        className={`px-3 py-1 rounded-lg text-sm font-semibold transition-all ${!showSaved ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
+                      >
+                        Generated ({results.length})
+                      </button>
+                      <button 
+                        onClick={() => setShowSaved(true)}
+                        className={`px-3 py-1 rounded-lg text-sm font-semibold transition-all flex items-center gap-1 ${showSaved ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill={showSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        Saved ({savedResults.length})
+                      </button>
                     </div>
-                    <div className="grid grid-cols-1 gap-4">
-                        {results.map((item, idx) => (
-                          <ResultCard 
-                            key={idx} 
-                            content={item} 
-                            index={idx} 
-                          />
-                        ))}
-                    </div>
+                  </div>
+                )}
+
+                {displayItems.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4 pb-12">
+                      {displayItems.map((item, idx) => (
+                        <ResultCard 
+                          key={`${item}-${idx}`} // Use item content as part of key to keep state stable
+                          content={item} 
+                          index={idx}
+                          isSaved={savedResults.includes(item)}
+                          onToggleSave={toggleSaveItem}
+                        />
+                      ))}
                   </div>
                 ) : (
                   !loading && (
                     <div className="text-center mt-10 text-slate-600 flex flex-col items-center">
                       <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center mb-4 shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 dark:text-slate-400">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                          <polyline points="17 8 12 3 7 8"></polyline>
-                          <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
+                        {showSaved ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 dark:text-slate-400 text-pink-500">
+                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 dark:text-slate-400">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                          </svg>
+                        )}
                       </div>
-                      <p className="text-lg font-medium text-slate-600 dark:text-slate-400">Ready to go viral?</p>
-                      <p className="text-sm opacity-60 max-w-xs mx-auto mt-1 dark:text-slate-500">Select your language, choose a mode, and watch the magic happen.</p>
+                      <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
+                        {showSaved ? "No saved items yet" : "Ready to go viral?"}
+                      </p>
+                      <p className="text-sm opacity-60 max-w-xs mx-auto mt-1 dark:text-slate-500">
+                        {showSaved ? "Tap the heart icon on generated results to save them here." : "Select your language, choose a mode, and watch the magic happen."}
+                      </p>
                     </div>
                   )
                 )}

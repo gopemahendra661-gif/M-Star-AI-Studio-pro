@@ -2,6 +2,8 @@ export enum GeneratorMode {
   AUTO = 'Auto Detect',
   ROAST = 'Roast',
   COMPLIMENT = 'Compliment',
+  SHAYARI = 'Shayari',
+  QUOTES = 'Quotes',
   BIO = 'Bio',
   CAPTION = 'Caption',
   STATUS = 'Status',
