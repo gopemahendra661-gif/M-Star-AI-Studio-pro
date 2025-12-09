@@ -3,13 +3,14 @@ export const config = {
   maxDuration: 10, // Max duration for Hobby plan
 };
 
-// 5 Best Free Fallback Models (Verified Active & Fast)
+// 6 Best Free Fallback Models (Verified Active & Fast)
 const FALLBACK_MODELS = [
   "google/gemini-2.0-flash-lite-preview-02-05:free", // Fastest currently
-  "meta-llama/llama-3.2-3b-instruct:free",           // Very Fast & Light
   "meta-llama/llama-3-8b-instruct:free",             // Most Reliable Standard
-  "google/gemma-2-9b-it:free",                       // High Quality Google Model
-  "huggingfaceh4/zephyr-7b-beta:free"                // Solid Backup
+  "google/gemini-2.0-flash-thinking-exp:free",       // Smartest Free Model
+  "meta-llama/llama-3.2-3b-instruct:free",           // Very Fast & Light
+  "huggingfaceh4/zephyr-7b-beta:free",                // Solid Backup
+  "mistralai/mistral-7b-instruct:free"               // Classic Reliable
 ];
 
 const getSystemInstruction = (language) => {
