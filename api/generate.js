@@ -4,13 +4,13 @@ export const config = {
 };
 
 // 5 Best Free Fallback Models (Optimized for Speed & Hinglish)
-// Removed invalid/deprecated model IDs
+// List verified for availability and speed to avoid timeouts
 const FALLBACK_MODELS = [
-  "google/gemini-2.0-flash-thinking-exp:free", // High Intelligence & Speed
-  "google/gemini-2.0-flash-lite-preview-02-05:free", // Very Fast
-  "meta-llama/llama-3.2-3b-instruct:free",     // Extremely Fast (Good for no-timeout)
-  "mistral/mistral-small-24b-instruct-2501:free", // Smart
-  "qwen/qwen-2.5-coder-32b-instruct:free"      // Reliable Fallback
+  "google/gemini-2.0-flash-lite-preview-02-05:free", // Fastest & Smartest currently
+  "meta-llama/llama-3.2-3b-instruct:free",           // Extremely Fast
+  "mistral/mistral-small-24b-instruct-2501:free",    // Very Reliable
+  "meta-llama/llama-3-8b-instruct:free",             // Standard reliable fallback
+  "microsoft/phi-3-medium-128k-instruct:free"        // Good backup
 ];
 
 const getSystemInstruction = (language) => {
