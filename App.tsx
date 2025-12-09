@@ -4,6 +4,7 @@ import ModeSelector from './components/ModeSelector';
 import LanguageSelector from './components/LanguageSelector';
 import ResultCard from './components/ResultCard';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import PermissionModal from './components/PermissionModal';
 import { generateContent } from './services/openRouterService';
 import { GeneratorMode, Language } from './types';
 
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   
   // Voice Input State
   const [isListening, setIsListening] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const handleGenerate = async () => {
@@ -92,8 +94,11 @@ const App: React.FC = () => {
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error", event.error);
       setIsListening(false);
-      // Don't show error for 'no-speech' as it's common when cancelling
-      if (event.error !== 'no-speech') {
+      
+      // Handle Permission Errors
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'permission-denied') {
+        setShowPermissionModal(true);
+      } else if (event.error !== 'no-speech') {
         setError("Could not hear you. Please try again.");
         setTimeout(() => setError(null), 3000);
       }
@@ -107,8 +112,14 @@ const App: React.FC = () => {
       });
     };
 
-    recognitionRef.current = recognition;
-    recognition.start();
+    try {
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error("Failed to start recognition:", err);
+      // If start fails immediately, it might be a permission issue in some wrappers
+      setShowPermissionModal(true);
+    }
   };
 
   // Cleanup on unmount
@@ -267,6 +278,12 @@ const App: React.FC = () => {
           Privacy Policy
         </button>
       </footer>
+
+      {/* Permission Modal */}
+      <PermissionModal 
+        isOpen={showPermissionModal} 
+        onClose={() => setShowPermissionModal(false)} 
+      />
     </div>
   );
 };
