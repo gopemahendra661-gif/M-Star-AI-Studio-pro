@@ -1,14 +1,15 @@
+// Standard Node.js Serverless Function (No Edge Runtime) for stability
 export const config = {
-  runtime: 'edge',
+  maxDuration: 10, // Max duration for Hobby plan
 };
 
-// 5 Best Free Fallback Models (High Quality & Speed)
+// 5 Best Free Fallback Models (Optimized for Speed & Hinglish)
 const FALLBACK_MODELS = [
-  "google/gemini-2.0-flash-lite-preview-02-05:free", // Super Fast & Smart
-  "meta-llama/llama-3.3-70b-instruct:free",          // Best Open Source Logic
-  "deepseek/deepseek-r1-distill-llama-70b:free",     // High Reasoning
-  "mistral/mistral-nemo:free",                       // Reliable & Quick
-  "microsoft/phi-3-medium-128k-instruct:free"        // Strong Backup
+  "google/gemini-2.0-flash-lite-preview-02-05:free", // Fastest
+  "meta-llama/llama-3-8b-instruct:free",             // Good for chat/creative
+  "mistral/mistral-small-24b-instruct-2501:free",    // Smart & Free
+  "microsoft/phi-3-mini-128k-instruct:free",         // Reliable Backup
+  "google/gemini-2.0-pro-exp-02-05:free"             // High Intelligence Fallback
 ];
 
 const getSystemInstruction = (language) => {
@@ -58,23 +59,32 @@ Structure:
 `;
 };
 
-export default async function handler(request) {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+export default async function handler(req, res) {
+  // CORS Headers for stability
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { prompt, mode, language = 'Hinglish' } = await request.json();
+    const { prompt, mode, language = 'Hinglish' } = req.body;
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'Server Config Error: API Key missing' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      console.error("API Key Missing");
+      return res.status(500).json({ error: 'Server Config Error: API Key missing in Vercel.' });
     }
 
     const systemInstruction = getSystemInstruction(language);
@@ -105,7 +115,7 @@ export default async function handler(request) {
               { role: "user", content: userPrompt }
             ],
             temperature: 0.8,
-            // Removed response_format: { type: "json_object" } to maximize compatibility with all models
+            max_tokens: 1000,
           })
         });
 
@@ -125,38 +135,34 @@ export default async function handler(request) {
         // Remove markdown code blocks if present
         cleanJson = cleanJson.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
         
-        // Find the first '{' and last '}'
+        // Extract JSON object if embedded in text
         const startIndex = cleanJson.indexOf("{");
         const endIndex = cleanJson.lastIndexOf("}");
         
         if (startIndex !== -1 && endIndex !== -1) {
           cleanJson = cleanJson.substring(startIndex, endIndex + 1);
-        } else {
-           throw new Error("Could not find JSON in response");
-        }
-
-        let parsed;
-        try {
-          parsed = JSON.parse(cleanJson);
-        } catch (e) {
-          throw new Error("JSON Parse Failed");
         }
 
         let results = [];
-        if (parsed.results && Array.isArray(parsed.results)) {
-          results = parsed.results;
-        } else {
-          // If JSON is valid but structure is wrong, fallback to splitting lines
-          results = cleanJson.split('\n').filter(l => l.length > 5);
+        try {
+          const parsed = JSON.parse(cleanJson);
+          if (parsed.results && Array.isArray(parsed.results)) {
+            results = parsed.results;
+          } else if (Array.isArray(parsed)) {
+             results = parsed;
+          }
+        } catch (e) {
+          console.log("JSON Parse Failed, falling back to line split");
+          // Fallback: Split by lines if JSON fails
+          results = cleanJson.split('\n')
+            .map(line => line.replace(/^\d+\.\s*/, '').replace(/^- \s*/, '').trim())
+            .filter(l => l.length > 5 && !l.includes("Results") && !l.includes("Here is"));
         }
 
-        if (results.length === 0) throw new Error("No results found in JSON");
+        if (results.length === 0) throw new Error("No results found in AI response");
 
-        // If successful, return immediately
-        return new Response(JSON.stringify({ results }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        // Success!
+        return res.status(200).json({ results });
 
       } catch (error) {
         console.warn(`Model ${model} failed:`, error.message);
@@ -166,12 +172,11 @@ export default async function handler(request) {
     }
 
     // If loop finishes without success
-    throw new Error(`All AI models failed. Last error: ${lastError?.message || 'Unknown'}`);
+    console.error("All models failed:", lastError);
+    return res.status(503).json({ error: `AI Busy: ${lastError?.message || 'Try again later'}` });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error("Handler Error:", error);
+    return res.status(500).json({ error: error.message });
   }
 }

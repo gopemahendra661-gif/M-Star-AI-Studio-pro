@@ -17,11 +17,12 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, language = 'Hin
   // Aditi is good for Hindi/Hinglish. Salli/Brian for English.
   const voiceName = language === 'English' ? 'Salli' : 'Aditi';
   
-  // Free TTS API (StreamElements)
+  // Use our local proxy API to avoid CORS issues
   const getAudioUrl = (text: string) => {
-    // Basic cleanup to remove emojis as they might break TTS or sound weird
-    const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
-    return `https://api.streamelements.com/kappa/v2/speech?voice=${voiceName}&text=${encodeURIComponent(cleanText)}`;
+    // Basic cleanup to remove emojis as they might break TTS
+    const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
+    // Use window.location.origin to ensure absolute path if needed, or relative path
+    return `/api/tts?voice=${voiceName}&text=${encodeURIComponent(cleanText)}`;
   };
 
   const handleCopy = async () => {
@@ -52,33 +53,48 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, language = 'Hin
   const toggleAudio = () => {
     if (!audioRef.current) {
       setAudioLoading(true);
-      const audio = new Audio(getAudioUrl(content));
+      const audioUrl = getAudioUrl(content);
+      const audio = new Audio(audioUrl);
       audioRef.current = audio;
       
-      audio.oncanplaythrough = () => {
+      // Better loading handling
+      audio.onloadeddata = () => {
         setAudioLoading(false);
-        audio.play().catch(e => console.error("Playback error", e));
-        setIsPlaying(true);
+        audio.play()
+          .then(() => setIsPlaying(true))
+          .catch(e => {
+             console.error("Playback error", e);
+             setIsPlaying(false);
+             setAudioLoading(false);
+          });
       };
 
       audio.onended = () => {
         setIsPlaying(false);
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error("Audio Load Error", e);
         setAudioLoading(false);
         setIsPlaying(false);
-        alert("Could not generate audio for this text.");
+        alert("Audio unavailable. Trying fallback...");
+        
+        // Browser Native Fallback if API fails
+        if ('speechSynthesis' in window) {
+           const utterance = new SpeechSynthesisUtterance(content);
+           utterance.lang = language === 'Hindi' ? 'hi-IN' : 'en-US';
+           window.speechSynthesis.speak(utterance);
+        }
       };
 
-      // Fallback for immediate load start
+      // Force load
       audio.load();
     } else {
       if (isPlaying) {
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(e => console.error(e));
         setIsPlaying(true);
       }
     }
@@ -89,6 +105,9 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, language = 'Hin
       setAudioLoading(true);
       const url = getAudioUrl(content);
       const response = await fetch(url);
+      
+      if (!response.ok) throw new Error("Network response was not ok");
+      
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       
@@ -101,7 +120,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, language = 'Hin
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error("Download failed", error);
-      alert("Failed to download audio.");
+      alert("Failed to download audio. Check your connection.");
     } finally {
       setAudioLoading(false);
     }
@@ -117,6 +136,9 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, language = 'Hin
       setAudioLoading(true);
       const url = getAudioUrl(content);
       const response = await fetch(url);
+      
+      if (!response.ok) throw new Error("Network response was not ok");
+
       const blob = await response.blob();
       const file = new File([blob], "m-star-voice.mp3", { type: "audio/mp3" });
 
@@ -131,8 +153,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, language = 'Hin
       }
     } catch (error) {
       console.error("Audio share failed", error);
-      // Fallback to text share
-      handleShare();
+      handleShare(); // Fallback to text share
     } finally {
       setAudioLoading(false);
     }
