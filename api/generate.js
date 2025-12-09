@@ -3,14 +3,13 @@ export const config = {
   maxDuration: 10, // Max duration for Hobby plan
 };
 
-// 5 Best Free Fallback Models (Optimized for Speed & Hinglish)
-// List verified for availability and speed to avoid timeouts
+// 5 Best Free Fallback Models (Verified Active & Fast)
 const FALLBACK_MODELS = [
-  "google/gemini-2.0-flash-lite-preview-02-05:free", // Fastest & Smartest currently
-  "meta-llama/llama-3.2-3b-instruct:free",           // Extremely Fast
-  "mistral/mistral-small-24b-instruct-2501:free",    // Very Reliable
-  "meta-llama/llama-3-8b-instruct:free",             // Standard reliable fallback
-  "microsoft/phi-3-medium-128k-instruct:free"        // Good backup
+  "google/gemini-2.0-flash-lite-preview-02-05:free", // Fastest currently
+  "meta-llama/llama-3.2-3b-instruct:free",           // Very Fast & Light
+  "meta-llama/llama-3-8b-instruct:free",             // Most Reliable Standard
+  "google/gemma-2-9b-it:free",                       // High Quality Google Model
+  "huggingfaceh4/zephyr-7b-beta:free"                // Solid Backup
 ];
 
 const getSystemInstruction = (language) => {
@@ -101,7 +100,7 @@ export default async function handler(req, res) {
       try {
         console.log(`Trying model: ${model}`);
         
-        // Timeout controller for individual model calls (8 seconds to allow failover within 10s limit)
+        // Timeout controller (8s per model to allow switching)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
@@ -129,7 +128,9 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
           const errText = await response.text();
-          throw new Error(`OpenRouter API Error (${response.status}): ${errText}`);
+          // Don't throw immediately, let it go to next model unless it's a critical auth error
+          if (response.status === 401) throw new Error("Invalid API Key");
+          throw new Error(`API Error (${response.status}): ${errText}`);
         }
 
         const data = await response.json();
@@ -140,10 +141,10 @@ export default async function handler(req, res) {
         // Aggressive JSON Cleaning
         let cleanJson = contentString.trim();
         
-        // Remove markdown code blocks if present
+        // Remove markdown code blocks
         cleanJson = cleanJson.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
         
-        // Extract JSON object if embedded in text
+        // Extract JSON object
         const startIndex = cleanJson.indexOf("{");
         const endIndex = cleanJson.lastIndexOf("}");
         
@@ -161,7 +162,6 @@ export default async function handler(req, res) {
           }
         } catch (e) {
           console.log("JSON Parse Failed, falling back to line split");
-          // Fallback: Split by lines if JSON fails
           results = cleanJson.split('\n')
             .map(line => line.replace(/^\d+\.\s*/, '').replace(/^- \s*/, '').trim())
             .filter(l => l.length > 5 && !l.includes("Results") && !l.includes("Here is"));
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
       } catch (error) {
         console.warn(`Model ${model} failed:`, error.message);
         lastError = error;
-        // Continue to next model in loop
+        // Continue to next model
       }
     }
 
