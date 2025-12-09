@@ -4,12 +4,13 @@ export const config = {
 };
 
 // 5 Best Free Fallback Models (Optimized for Speed & Hinglish)
+// Removed invalid/deprecated model IDs
 const FALLBACK_MODELS = [
-  "google/gemini-2.0-flash-lite-preview-02-05:free", // Fastest
-  "meta-llama/llama-3-8b-instruct:free",             // Good for chat/creative
-  "mistral/mistral-small-24b-instruct-2501:free",    // Smart & Free
-  "microsoft/phi-3-mini-128k-instruct:free",         // Reliable Backup
-  "google/gemini-2.0-pro-exp-02-05:free"             // High Intelligence Fallback
+  "google/gemini-2.0-flash-thinking-exp:free", // High Intelligence & Speed
+  "google/gemini-2.0-flash-lite-preview-02-05:free", // Very Fast
+  "meta-llama/llama-3.2-3b-instruct:free",     // Extremely Fast (Good for no-timeout)
+  "mistral/mistral-small-24b-instruct-2501:free", // Smart
+  "qwen/qwen-2.5-coder-32b-instruct:free"      // Reliable Fallback
 ];
 
 const getSystemInstruction = (language) => {
@@ -100,6 +101,10 @@ export default async function handler(req, res) {
       try {
         console.log(`Trying model: ${model}`);
         
+        // Timeout controller for individual model calls (8 seconds to allow failover within 10s limit)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -116,8 +121,11 @@ export default async function handler(req, res) {
             ],
             temperature: 0.8,
             max_tokens: 1000,
-          })
+          }),
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           const errText = await response.text();
