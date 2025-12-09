@@ -137,7 +137,7 @@ const App: React.FC = () => {
   return (
     <div className={isDarkMode ? 'dark' : ''}>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 flex flex-col items-center">
-        <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+        <Header />
 
         <main className="w-full max-w-3xl flex-1 px-4 pb-20 mt-4">
           
@@ -146,8 +146,42 @@ const App: React.FC = () => {
           ) : (
             <>
               {/* Input Section - Sticky Top below header */}
-              <div className="sticky top-0 z-10 bg-slate-50/90 dark:bg-slate-950/80 backdrop-blur-md pt-2 pb-2 transition-all duration-300">
-                <ModeSelector currentMode={mode} onSelectMode={setMode} />
+              <div className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md pt-2 pb-2 transition-all duration-300 border-b border-transparent dark:border-slate-800/50 -mx-4 px-4 shadow-sm md:shadow-none md:border-none md:bg-transparent md:dark:bg-transparent md:backdrop-blur-none">
+                
+                {/* Control Row: Modes + Theme Toggle */}
+                <div className="flex items-center w-full">
+                  <div className="flex-1 min-w-0">
+                    <ModeSelector currentMode={mode} onSelectMode={setMode} />
+                  </div>
+                  
+                  {/* Theme Toggle Button - Integrated in Sticky Bar */}
+                  <div className="pl-2 flex-shrink-0">
+                    <button 
+                      onClick={toggleTheme}
+                      className="p-3 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
+                      title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    >
+                      {isDarkMode ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="5"></circle>
+                          <line x1="12" y1="1" x2="12" y2="3"></line>
+                          <line x1="12" y1="21" x2="12" y2="23"></line>
+                          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                          <line x1="1" y1="12" x2="3" y2="12"></line>
+                          <line x1="21" y1="12" x2="23" y2="12"></line>
+                          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
                 <LanguageSelector currentLanguage={language} onSelectLanguage={setLanguage} />
                 
                 <div className="mt-2 relative group">
