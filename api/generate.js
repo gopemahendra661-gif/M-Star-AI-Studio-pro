@@ -3,15 +3,16 @@ export const config = {
   maxDuration: 60, // Maximum allowed duration for reliable fallbacks
 };
 
-// 100% FREE OpenRouter Models List (Ordered by Smartness -> Speed -> Reliability)
+// 100% FREE OpenRouter Models List (Ordered by Reliability & Speed)
+// Updated to remove dead endpoints and prioritize high-availability models
 const FREE_MODELS = [
-  "deepseek/deepseek-v3:free",                   // Smartest Free Model
-  "deepseek/deepseek-r1:free",                   // Reasoning Model
-  "google/gemini-2.0-flash-thinking-exp:free",   // Google's Free Experimental
-  "meta-llama/llama-3.3-70b-instruct:free",      // High Quality Llama
-  "meta-llama/llama-3-8b-instruct:free",         // Fast & Reliable
-  "mistralai/mistral-7b-instruct:free",          // Solid Backup
-  "microsoft/phi-3-mini-128k-instruct:free"      // Emergency Backup
+  "meta-llama/llama-3.2-3b-instruct:free",       // SUPER FAST & STABLE (Best for fallback)
+  "google/gemma-2-9b-it:free",                   // Google's Always-On Free Model
+  "mistralai/mistral-7b-instruct:free",          // Reliable Workhorse
+  "huggingfaceh4/zephyr-7b-beta:free",           // Good for creative text
+  "meta-llama/llama-3-8b-instruct:free",         // Standard Llama 3
+  "deepseek/deepseek-v3:free",                   // Smart but often busy
+  "deepseek/deepseek-r1:free"                    // Reasoning (often busy)
 ];
 
 const getSystemInstruction = (language) => {
@@ -96,6 +97,7 @@ export default async function handler(req, res) {
       : `Mode: ${mode}. User Input: "${prompt}". Generate content specifically for this mode in ${language}. Return JSON.`;
 
     let lastError = null;
+    let successfulModel = null;
 
     // Iterate through FREE models
     for (const model of FREE_MODELS) {
@@ -132,6 +134,11 @@ export default async function handler(req, res) {
         if (response.status === 429) {
           console.warn(`Model ${model} Rate Limited (429). Trying next model...`);
           throw new Error("Rate limit exceeded for this model");
+        }
+
+        if (response.status === 404) {
+          console.warn(`Model ${model} not found (404). Removing from rotation.`);
+          throw new Error("Model endpoint not found");
         }
 
         if (!response.ok) {
@@ -178,6 +185,8 @@ export default async function handler(req, res) {
         if (results.length === 0) throw new Error("No usable results found in response");
 
         // Success!
+        successfulModel = model;
+        console.log(`Success with model: ${successfulModel}`);
         return res.status(200).json({ results });
 
       } catch (error) {
@@ -189,7 +198,7 @@ export default async function handler(req, res) {
 
     console.error("All free models failed:", lastError);
     return res.status(503).json({ 
-      error: `All Free Models are busy right now. Please wait 1 minute and try again. (Reason: ${lastError?.message})` 
+      error: `System Busy: Please wait 10 seconds and try again. (Last Error: ${lastError?.message})` 
     });
 
   } catch (error) {
