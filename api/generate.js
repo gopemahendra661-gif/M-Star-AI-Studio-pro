@@ -1,16 +1,15 @@
-// Standard Node.js Serverless Function (No Edge Runtime) for stability
+// Standard Node.js Serverless Function
 export const config = {
-  maxDuration: 10, // Max duration for Hobby plan
+  maxDuration: 25, // Increased duration for DeepSeek/Reasoning models
 };
 
-// 6 Best Free Fallback Models (Verified Active & Fast)
+// User Requested Models (Mapped to valid OpenRouter Free IDs)
 const FALLBACK_MODELS = [
-  "google/gemini-2.0-flash-lite-preview-02-05:free", // Fastest currently
-  "meta-llama/llama-3-8b-instruct:free",             // Most Reliable Standard
-  "google/gemini-2.0-flash-thinking-exp:free",       // Smartest Free Model
-  "meta-llama/llama-3.2-3b-instruct:free",           // Very Fast & Light
-  "huggingfaceh4/zephyr-7b-beta:free",                // Solid Backup
-  "mistralai/mistral-7b-instruct:free"               // Classic Reliable
+  "deepseek/deepseek-v3:free",                   // DeepSeek V3 (Requested)
+  "deepseek/deepseek-r1:free",                   // DeepSeek R1 (Requested)
+  "google/gemini-2.0-flash-thinking-exp:free",   // High Logic Backup
+  "meta-llama/llama-3.3-70b-instruct:free",      // Best Llama (Requested Llama Variant)
+  "google/gemini-2.0-flash-lite-preview-02-05:free" // Fallback Speed
 ];
 
 const getSystemInstruction = (language) => {
@@ -61,7 +60,7 @@ Structure:
 };
 
 export default async function handler(req, res) {
-  // CORS Headers for stability
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -101,9 +100,9 @@ export default async function handler(req, res) {
       try {
         console.log(`Trying model: ${model}`);
         
-        // Timeout controller (8s per model to allow switching)
+        // Timeout 15s for DeepSeek models which can be slower
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
@@ -120,7 +119,7 @@ export default async function handler(req, res) {
               { role: "user", content: userPrompt }
             ],
             temperature: 0.8,
-            max_tokens: 1000,
+            max_tokens: 1500,
           }),
           signal: controller.signal
         });
@@ -129,7 +128,6 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
           const errText = await response.text();
-          // Don't throw immediately, let it go to next model unless it's a critical auth error
           if (response.status === 401) throw new Error("Invalid API Key");
           throw new Error(`API Error (${response.status}): ${errText}`);
         }
@@ -139,10 +137,11 @@ export default async function handler(req, res) {
 
         if (!contentString) throw new Error("Empty response from AI");
 
-        // Aggressive JSON Cleaning
-        let cleanJson = contentString.trim();
+        // --- DEEPSEEK CLEANING LOGIC ---
+        // DeepSeek R1 often returns <think>...</think> tags. We must remove them.
+        let cleanJson = contentString.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
         
-        // Remove markdown code blocks
+        // Remove markdown
         cleanJson = cleanJson.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
         
         // Extract JSON object
@@ -162,15 +161,15 @@ export default async function handler(req, res) {
              results = parsed;
           }
         } catch (e) {
-          console.log("JSON Parse Failed, falling back to line split");
+          console.log("JSON Parse Failed, falling back to line split. Raw:", cleanJson);
+          // Fallback: Split by lines if JSON fails
           results = cleanJson.split('\n')
-            .map(line => line.replace(/^\d+\.\s*/, '').replace(/^- \s*/, '').trim())
-            .filter(l => l.length > 5 && !l.includes("Results") && !l.includes("Here is"));
+            .map(line => line.replace(/^\d+\.\s*/, '').replace(/^- \s*/, '').replace(/^"|",?$/g, '').trim())
+            .filter(l => l.length > 5 && !l.includes("Results") && !l.includes("Here is") && !l.includes("{") && !l.includes("}"));
         }
 
         if (results.length === 0) throw new Error("No results found in AI response");
 
-        // Success!
         return res.status(200).json({ results });
 
       } catch (error) {
@@ -180,7 +179,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // If loop finishes without success
     console.error("All models failed:", lastError);
     return res.status(503).json({ error: `AI Busy: ${lastError?.message || 'Try again later'}` });
 
