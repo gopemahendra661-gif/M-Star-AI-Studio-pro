@@ -21,7 +21,7 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ currentMode, onSelectMode }
               ${
                 currentMode === mode
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-transparent shadow-lg shadow-purple-500/30 transform scale-105'
-                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200 shadow-sm dark:shadow-none'
               }
             `}
           >

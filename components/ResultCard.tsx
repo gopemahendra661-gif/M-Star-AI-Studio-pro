@@ -35,10 +35,10 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index }) => {
 
   return (
     <div 
-      className="group relative bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 animate-fadeIn"
+      className="group relative bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 animate-fadeIn shadow-sm hover:shadow-md dark:shadow-none"
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      <p className="text-slate-200 text-lg font-medium leading-relaxed pr-2 pb-10 md:pb-0 md:pr-24">
+      <p className="text-slate-800 dark:text-slate-200 text-lg font-medium leading-relaxed pr-2 pb-10 md:pb-0 md:pr-24">
         {content}
       </p>
       
@@ -48,7 +48,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index }) => {
         {/* Share Button */}
         <button
           onClick={handleShare}
-          className="p-2 rounded-lg bg-slate-700/50 text-slate-400 hover:bg-pink-600 hover:text-white transition-all duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+          className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-pink-100 dark:hover:bg-pink-600 hover:text-pink-600 dark:hover:text-white transition-all duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100"
           title="Share"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -66,8 +66,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index }) => {
           className={`
             p-2 rounded-lg transition-all duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100
             ${copied 
-              ? 'bg-green-500/20 text-green-400' 
-              : 'bg-slate-700/50 text-slate-400 hover:bg-purple-600 hover:text-white'
+              ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400' 
+              : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-purple-100 dark:hover:bg-purple-600 hover:text-purple-600 dark:hover:text-white'
             }
           `}
           title="Copy Text"
