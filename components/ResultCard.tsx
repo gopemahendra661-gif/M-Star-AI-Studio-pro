@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface ResultCardProps {
   content: string;
@@ -12,6 +12,17 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      window.speechSynthesis.cancel();
+    };
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -38,22 +49,61 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
     }
   };
 
+  // Helper to remove emojis and markdown for clear speech
+  const cleanTextForTTS = (text: string) => {
+    return text
+      .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '') // Remove Emojis
+      .replace(/[*#_`~]/g, '') // Remove Markdown chars
+      .replace(/\n/g, '. ') // Replace newlines with pauses
+      .trim();
+  };
+
+  // Fallback to Native Browser TTS
+  const speakNative = (text: string) => {
+    window.speechSynthesis.cancel(); // Stop previous
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Try to find a Hindi or Indian English voice
+    const voices = window.speechSynthesis.getVoices();
+    const hindiVoice = voices.find(v => v.lang.includes('hi') || v.lang.includes('IN'));
+    if (hindiVoice) utterance.voice = hindiVoice;
+    
+    utterance.rate = 0.9; // Slightly slower for better clarity
+    utterance.pitch = 1;
+
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onend = () => {
+      setIsPlaying(false);
+      setIsLoadingAudio(false);
+    };
+    utterance.onerror = () => {
+      setIsPlaying(false);
+      setIsLoadingAudio(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handlePlayAudio = async () => {
+    // Stop if currently playing
     if (isPlaying) {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
+      window.speechSynthesis.cancel();
       setIsPlaying(false);
       return;
     }
 
     setIsLoadingAudio(true);
+    const textToSpeak = cleanTextForTTS(content);
+
     try {
-      // Use the local API route which proxies to StreamElements
-      const response = await fetch(`/api/tts?text=${encodeURIComponent(content)}&voice=Aditi`);
+      // 1. Try High Quality API TTS first
+      const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&voice=Aditi`);
       
-      if (!response.ok) throw new Error("Audio fetch failed");
+      if (!response.ok) throw new Error("API TTS failed");
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -70,12 +120,20 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
         URL.revokeObjectURL(url);
       };
 
-      audio.play();
+      audio.onerror = () => {
+        // If audio format fails, fallback to native
+        console.warn("Audio playback error, switching to native");
+        speakNative(textToSpeak);
+      };
+
+      await audio.play();
       setIsPlaying(true);
-    } catch (error) {
-      console.error("TTS Error:", error);
-    } finally {
       setIsLoadingAudio(false);
+
+    } catch (error) {
+      console.warn("TTS API Error, using native fallback:", error);
+      // 2. Fallback to Native TTS if API fails
+      speakNative(textToSpeak);
     }
   };
 
@@ -102,7 +160,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
               : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-purple-100 dark:hover:bg-purple-600 hover:text-purple-600 dark:hover:text-white'
             }
           `}
-          title="Listen"
+          title={isPlaying ? "Stop" : "Listen"}
         >
           {isLoadingAudio ? (
              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
