@@ -226,7 +226,6 @@ const App: React.FC = () => {
                       key={idx} 
                       content={item} 
                       index={idx} 
-                      language={language}
                     />
                   ))}
                </div>
