@@ -1,15 +1,15 @@
 // Standard Node.js Serverless Function
 export const config = {
-  maxDuration: 25, // Increased duration for DeepSeek/Reasoning models
+  maxDuration: 30, // Increased duration for DeepSeek/Reasoning models
 };
 
 // User Requested Models (Mapped to valid OpenRouter Free IDs)
 const FALLBACK_MODELS = [
-  "deepseek/deepseek-v3:free",                   // DeepSeek V3 (Requested)
-  "deepseek/deepseek-r1:free",                   // DeepSeek R1 (Requested)
-  "google/gemini-2.0-flash-thinking-exp:free",   // High Logic Backup
-  "meta-llama/llama-3.3-70b-instruct:free",      // Best Llama (Requested Llama Variant)
-  "google/gemini-2.0-flash-lite-preview-02-05:free" // Fallback Speed
+  "deepseek/deepseek-v3:free",                   // DeepSeek V3 (Primary)
+  "deepseek/deepseek-r1:free",                   // DeepSeek R1 (Reasoning)
+  "meta-llama/llama-3.3-70b-instruct:free",      // Llama 3.3 70B (Reliable)
+  "google/gemini-2.0-flash-thinking-exp:free",   // Gemini Flash Thinking
+  "mistralai/mistral-7b-instruct:free"           // Mistral 7B (Solid Backup)
 ];
 
 const getSystemInstruction = (language) => {
@@ -100,9 +100,9 @@ export default async function handler(req, res) {
       try {
         console.log(`Trying model: ${model}`);
         
-        // Timeout 15s for DeepSeek models which can be slower
+        // Timeout 25s for DeepSeek models which can be slower
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
 
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
@@ -129,6 +129,7 @@ export default async function handler(req, res) {
         if (!response.ok) {
           const errText = await response.text();
           if (response.status === 401) throw new Error("Invalid API Key");
+          // If 404/400, model might be down or invalid ID, throw to try next
           throw new Error(`API Error (${response.status}): ${errText}`);
         }
 
