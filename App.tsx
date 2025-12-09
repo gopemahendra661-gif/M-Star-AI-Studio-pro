@@ -66,7 +66,7 @@ const App: React.FC = () => {
 
     setLoading(true);
     setError(null);
-    setResults([]);
+    // REMOVED: setResults([]) to prevent blank page flash
     setShowSaved(false); // Switch back to results view
 
     try {
@@ -321,7 +321,7 @@ const App: React.FC = () => {
                 )}
 
                 {displayItems.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 pb-12">
+                  <div className={`grid grid-cols-1 gap-4 pb-12 transition-all duration-300 ${loading ? 'opacity-50 blur-sm pointer-events-none' : ''}`}>
                       {displayItems.map((item, idx) => (
                         <ResultCard 
                           key={`${item}-${idx}`} // Use item content as part of key to keep state stable

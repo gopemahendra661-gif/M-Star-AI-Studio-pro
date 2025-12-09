@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ResultCardProps {
   content: string;
@@ -10,16 +10,10 @@ interface ResultCardProps {
 const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false, onToggleSave }) => {
   const [copied, setCopied] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
       window.speechSynthesis.cancel();
     };
   }, []);
@@ -58,83 +52,37 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
       .trim();
   };
 
-  // Fallback to Native Browser TTS
-  const speakNative = (text: string) => {
-    window.speechSynthesis.cancel(); // Stop previous
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Try to find a Hindi or Indian English voice
-    const voices = window.speechSynthesis.getVoices();
-    const hindiVoice = voices.find(v => v.lang.includes('hi') || v.lang.includes('IN'));
-    if (hindiVoice) utterance.voice = hindiVoice;
-    
-    utterance.rate = 0.9; // Slightly slower for better clarity
-    utterance.pitch = 1;
-
-    utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => {
-      setIsPlaying(false);
-      setIsLoadingAudio(false);
-    };
-    utterance.onerror = () => {
-      setIsPlaying(false);
-      setIsLoadingAudio(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const handlePlayAudio = async () => {
+  const handlePlayAudio = () => {
     // Stop if currently playing
     if (isPlaying) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
       window.speechSynthesis.cancel();
       setIsPlaying(false);
       return;
     }
 
-    setIsLoadingAudio(true);
     const textToSpeak = cleanTextForTTS(content);
+    
+    // Create Utterance
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    
+    // Try to find a Hindi or Indian English voice
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Priority: Hindi -> Indian English -> Google Hindi -> Default
+    const preferredVoice = voices.find(v => v.lang.includes('hi')) || 
+                           voices.find(v => v.lang.includes('en-IN')) ||
+                           voices.find(v => v.name.includes('Google Hindi'));
+                           
+    if (preferredVoice) utterance.voice = preferredVoice;
+    
+    utterance.rate = 0.9; // Slightly slower for better clarity
+    utterance.pitch = 1;
 
-    try {
-      // 1. Try High Quality API TTS first
-      const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&voice=Aditi`);
-      
-      if (!response.ok) throw new Error("API TTS failed");
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      
-      audio.onended = () => {
-        setIsPlaying(false);
-        URL.revokeObjectURL(url);
-      };
-
-      audio.onerror = () => {
-        // If audio format fails, fallback to native
-        console.warn("Audio playback error, switching to native");
-        speakNative(textToSpeak);
-      };
-
-      await audio.play();
-      setIsPlaying(true);
-      setIsLoadingAudio(false);
-
-    } catch (error) {
-      console.warn("TTS API Error, using native fallback:", error);
-      // 2. Fallback to Native TTS if API fails
-      speakNative(textToSpeak);
-    }
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -149,10 +97,9 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
       {/* Action Bar */}
       <div className="absolute bottom-3 right-3 flex items-center space-x-1 md:top-3 md:bottom-auto">
         
-        {/* Play Audio Button */}
+        {/* Play Audio Button (Native Only) */}
         <button
           onClick={handlePlayAudio}
-          disabled={isLoadingAudio}
           className={`
             p-2 rounded-lg transition-all duration-200
             ${isPlaying 
@@ -160,14 +107,9 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
               : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-purple-100 dark:hover:bg-purple-600 hover:text-purple-600 dark:hover:text-white'
             }
           `}
-          title={isPlaying ? "Stop" : "Listen"}
+          title={isPlaying ? "Stop" : "Listen (Native)"}
         >
-          {isLoadingAudio ? (
-             <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-             </svg>
-          ) : isPlaying ? (
+          {isPlaying ? (
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="6" y="4" width="4" height="16"></rect>
               <rect x="14" y="4" width="4" height="16"></rect>
