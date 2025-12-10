@@ -36,29 +36,46 @@ const App: React.FC = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  // Load saved items from localStorage on mount
+  // Safe Load from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('mstar_saved_items');
-    if (saved) {
-      try {
-        setSavedResults(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse saved items", e);
+    try {
+      const saved = localStorage.getItem('mstar_saved_items');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setSavedResults(parsed);
+        }
       }
+    } catch (e) {
+      console.warn("Storage access failed (likely private mode):", e);
     }
   }, []);
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
+  // Safe Save to localStorage
   const toggleSaveItem = (content: string) => {
-    let newSaved;
-    if (savedResults.includes(content)) {
-      newSaved = savedResults.filter(item => item !== content);
-    } else {
-      newSaved = [content, ...savedResults];
+    try {
+      setSavedResults(prev => {
+        let newSaved;
+        if (prev.includes(content)) {
+          newSaved = prev.filter(item => item !== content);
+        } else {
+          newSaved = [content, ...prev];
+        }
+        
+        // Try saving to local storage, catch error if quota full or private mode
+        try {
+          localStorage.setItem('mstar_saved_items', JSON.stringify(newSaved));
+        } catch (storageErr) {
+          console.warn("Could not save to localStorage:", storageErr);
+        }
+        
+        return newSaved;
+      });
+    } catch (err) {
+      console.error("Error toggling save:", err);
     }
-    setSavedResults(newSaved);
-    localStorage.setItem('mstar_saved_items', JSON.stringify(newSaved));
   };
 
   const handleGenerate = async () => {
@@ -66,7 +83,6 @@ const App: React.FC = () => {
 
     setLoading(true);
     setError(null);
-    // REMOVED: setResults([]) to prevent blank page flash
     setShowSaved(false); // Switch back to results view
 
     try {
@@ -324,7 +340,7 @@ const App: React.FC = () => {
                   <div className={`grid grid-cols-1 gap-4 pb-12 transition-all duration-300 ${loading ? 'opacity-50 blur-sm pointer-events-none' : ''}`}>
                       {displayItems.map((item, idx) => (
                         <ResultCard 
-                          key={`${item}-${idx}`} // Use item content as part of key to keep state stable
+                          key={`${item.substring(0, 10)}-${idx}`} // Optimized key to prevent crashes with huge text
                           content={item} 
                           index={idx}
                           isSaved={savedResults.includes(item)}
