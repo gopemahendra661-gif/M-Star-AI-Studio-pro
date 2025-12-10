@@ -10,7 +10,19 @@ declare global {
   }
 }
 
-// APK Compatible Download Functions
+// Helper: Convert Data URL to Blob
+const dataURItoBlob = (dataURI: string) => {
+  const byteString = atob(dataURI.split(',')[1]);
+  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: mimeString });
+};
+
+// Generate Image
 export const generateRoastImage = async (elementId: string): Promise<{ blob: Blob | null; dataUrl: string }> => {
   try {
     const element = document.getElementById(elementId);
@@ -18,15 +30,14 @@ export const generateRoastImage = async (elementId: string): Promise<{ blob: Blo
       throw new Error('Element not found');
     }
 
-    // Generate canvas with better quality for APK
+    // Generate canvas
     const canvas = await html2canvas(element, {
       backgroundColor: null,
-      scale: 2, // Higher quality
+      scale: 2, // High quality
       useCORS: true,
       allowTaint: true,
       logging: false,
       onclone: (clonedDoc) => {
-        // Ensure all styles are loaded
         const clonedElement = clonedDoc.getElementById(elementId);
         if (clonedElement) {
           clonedElement.style.display = 'block';
@@ -35,13 +46,8 @@ export const generateRoastImage = async (elementId: string): Promise<{ blob: Blo
       }
     });
 
-    // Convert to data URL
     const dataUrl = canvas.toDataURL('image/png', 1.0);
-    
-    // Convert to blob
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
-    });
+    const blob = dataURItoBlob(dataUrl);
 
     return { blob, dataUrl };
   } catch (error) {
@@ -50,10 +56,11 @@ export const generateRoastImage = async (elementId: string): Promise<{ blob: Blo
   }
 };
 
+// Share Function
 export const shareRoastImage = async (blob: Blob): Promise<boolean> => {
   if (!blob) return false;
 
-  // Method 1: APK Bridge (If available - Best Experience)
+  // Method 1: APK Bridge
   if (window.AndroidBridge && typeof window.AndroidBridge.shareImage === 'function') {
     try {
       const reader = new FileReader();
@@ -68,7 +75,7 @@ export const shareRoastImage = async (blob: Blob): Promise<boolean> => {
     }
   }
 
-  // Method 2: Native Share (Level 1)
+  // Method 2: Web Share API
   if (navigator.share && navigator.canShare) {
     const file = new File([blob], 'm-star-roast.png', { type: 'image/png' });
     const shareData = {
@@ -89,53 +96,36 @@ export const shareRoastImage = async (blob: Blob): Promise<boolean> => {
   return false;
 };
 
-// THE REAL DOWNLOAD FIX FOR APK/WEBVIEW
+// DOWNLOAD FUNCTION - PURE CLIENT SIDE
 export const downloadRoastImage = (dataUrl: string) => {
-  // Method 1: APK Bridge (If available - Fastest)
-  if (window.AndroidBridge && typeof window.AndroidBridge.downloadImage === 'function') {
-    const base64Data = dataUrl.split(',')[1];
-    window.AndroidBridge.downloadImage(base64Data, `mstar_roast_${Date.now()}.png`);
-    return;
-  }
+  try {
+    // Method 1: APK Bridge
+    if (window.AndroidBridge && typeof window.AndroidBridge.downloadImage === 'function') {
+      const base64Data = dataUrl.split(',')[1];
+      window.AndroidBridge.downloadImage(base64Data, `mstar_roast_${Date.now()}.png`);
+      return;
+    }
 
-  // Method 2: Try standard download (Desktops/Modern Browsers)
-  const isWebView = /wv|android|iphone|ipad/i.test(navigator.userAgent);
+    // Method 2: Client Side Blob Download (Works on 99% of devices including Android Chrome)
+    const blob = dataURItoBlob(dataUrl);
+    const url = URL.createObjectURL(blob);
 
-  if (!isWebView) {
     const link = document.createElement('a');
-    link.href = dataUrl;
+    link.href = url;
     link.download = `m-star-roast-${Date.now()}.png`;
+    link.style.display = 'none';
     document.body.appendChild(link);
+    
     link.click();
-    document.body.removeChild(link);
-    return;
+
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }, 100);
+
+  } catch (error) {
+    console.error("Download failed", error);
+    alert("Download blocked. Please use the Screenshot Mode.");
   }
-
-  // Method 3: Server Echo (Safe for APKs without Bridge)
-  // We use target="_blank" so the main app doesn't navigate to a white screen if it fails.
-  // This uses the API route we defined to force a file download via the browser.
-  
-  const form = document.createElement('form');
-  
-  // Anti-redirect hack: Add timestamp query param
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  form.action = `${baseUrl}/api/download-image?t=${Date.now()}`;
-  
-  form.method = 'POST';
-  form.target = '_blank'; // Opens in system browser/new window to avoid white screen in app
-  form.enctype = 'application/x-www-form-urlencoded';
-
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = 'imageData';
-  input.value = dataUrl;
-
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-  
-  // Cleanup
-  setTimeout(() => {
-    document.body.removeChild(form);
-  }, 1000);
 };
