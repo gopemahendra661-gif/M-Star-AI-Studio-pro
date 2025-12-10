@@ -5,9 +5,10 @@ interface ResultCardProps {
   index: number;
   isSaved?: boolean;
   onToggleSave?: (content: string) => void;
+  onGenerateImage?: (content: string) => void;
 }
 
-const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false, onToggleSave }) => {
+const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false, onToggleSave, onGenerateImage }) => {
   const [copied, setCopied] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -139,6 +140,21 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
           )}
         </button>
 
+        {/* Generate Image Button */}
+        {onGenerateImage && (
+          <button
+            onClick={() => onGenerateImage(content)}
+            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-600 hover:text-indigo-600 dark:hover:text-white transition-all duration-200"
+            title="Create Image"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </button>
+        )}
+
         {/* Save/Heart Button */}
         {onToggleSave && (
           <button
@@ -157,21 +173,6 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
             </svg>
           </button>
         )}
-
-        {/* Share Button */}
-        <button
-          onClick={handleShare}
-          className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-blue-100 dark:hover:bg-blue-600 hover:text-blue-600 dark:hover:text-white transition-all duration-200"
-          title="Share"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="18" cy="5" r="3"></circle>
-            <circle cx="6" cy="12" r="3"></circle>
-            <circle cx="18" cy="19" r="3"></circle>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-          </svg>
-        </button>
 
         {/* Copy Button */}
         <button
