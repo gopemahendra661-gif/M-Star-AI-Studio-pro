@@ -14,7 +14,10 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
-      window.speechSynthesis.cancel();
+      // Safe cancellation that won't crash even if window.speechSynthesis is undefined in weird webviews
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
@@ -43,6 +46,18 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
     }
   };
 
+  const handleToggleSave = () => {
+    // Add vibration for better UX (feedback)
+    if (navigator.vibrate) {
+      try {
+        navigator.vibrate(50);
+      } catch (e) {
+        // ignore vibration error
+      }
+    }
+    if (onToggleSave) onToggleSave(content);
+  };
+
   // Helper to remove emojis and markdown for clear speech
   const cleanTextForTTS = (text: string) => {
     return text
@@ -53,6 +68,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
   };
 
   const handlePlayAudio = () => {
+    if (!window.speechSynthesis) return;
+
     // Stop if currently playing
     if (isPlaying) {
       window.speechSynthesis.cancel();
@@ -125,7 +142,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ content, index, isSaved = false
         {/* Save/Heart Button */}
         {onToggleSave && (
           <button
-            onClick={() => onToggleSave(content)}
+            onClick={handleToggleSave}
             className={`
               p-2 rounded-lg transition-all duration-200
               ${isSaved

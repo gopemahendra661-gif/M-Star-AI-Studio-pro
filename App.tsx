@@ -26,7 +26,18 @@ const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('Hinglish');
   
   const [results, setResults] = useState<string[]>([]);
-  const [savedResults, setSavedResults] = useState<string[]>([]);
+  
+  // CRASH FIX: Initialize savedResults safely using Lazy Initializer
+  // This prevents race conditions and crashes in Android WebViews
+  const [savedResults, setSavedResults] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('mstar_saved_items');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn("Could not load saved items:", e);
+      return [];
+    }
+  });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,46 +47,27 @@ const App: React.FC = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  // Safe Load from localStorage
+  // Safe Save: Update localStorage whenever savedResults changes
+  // This keeps the render logic pure and prevents crashes
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('mstar_saved_items');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setSavedResults(parsed);
-        }
-      }
+      localStorage.setItem('mstar_saved_items', JSON.stringify(savedResults));
     } catch (e) {
-      console.warn("Storage access failed (likely private mode):", e);
+      console.warn("Could not save items to storage:", e);
     }
-  }, []);
+  }, [savedResults]);
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
-  // Safe Save to localStorage
+  // Pure State Update
   const toggleSaveItem = (content: string) => {
-    try {
-      setSavedResults(prev => {
-        let newSaved;
-        if (prev.includes(content)) {
-          newSaved = prev.filter(item => item !== content);
-        } else {
-          newSaved = [content, ...prev];
-        }
-        
-        // Try saving to local storage, catch error if quota full or private mode
-        try {
-          localStorage.setItem('mstar_saved_items', JSON.stringify(newSaved));
-        } catch (storageErr) {
-          console.warn("Could not save to localStorage:", storageErr);
-        }
-        
-        return newSaved;
-      });
-    } catch (err) {
-      console.error("Error toggling save:", err);
-    }
+    setSavedResults(prev => {
+      if (prev.includes(content)) {
+        return prev.filter(item => item !== content);
+      } else {
+        return [content, ...prev];
+      }
+    });
   };
 
   const handleGenerate = async () => {
@@ -340,7 +332,7 @@ const App: React.FC = () => {
                   <div className={`grid grid-cols-1 gap-4 pb-12 transition-all duration-300 ${loading ? 'opacity-50 blur-sm pointer-events-none' : ''}`}>
                       {displayItems.map((item, idx) => (
                         <ResultCard 
-                          key={`${item.substring(0, 10)}-${idx}`} // Optimized key to prevent crashes with huge text
+                          key={`${(item || "").substring(0, 10)}-${idx}`} // Safer key generation
                           content={item} 
                           index={idx}
                           isSaved={savedResults.includes(item)}
