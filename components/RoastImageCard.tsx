@@ -34,17 +34,18 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
   const [templateIndex, setTemplateIndex] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false); 
 
   const currentTemplate = TEMPLATES[templateIndex];
 
-  const handleGenerateAndAction = async (action: 'download' | 'share') => {
+  const handleGenerateAndAction = async (action: 'download' | 'share' | 'preview') => {
     setIsProcessing(true);
     
     try {
       // 1. Generate Image
       const { blob, dataUrl } = await generateRoastImage('roast-card-capture');
       
-      // 2. Set Preview (Crucial for APK fallback)
+      // 2. Set Preview
       setGeneratedImage(dataUrl);
 
       // 3. Perform Action
@@ -52,14 +53,15 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
         if (blob) {
           const shared = await shareRoastImage(blob);
           if (!shared) {
-            // If share fails, fallback to download logic
+            // Fallback: If share fails, trigger the server download so user can share from gallery
             downloadRoastImage(dataUrl);
+            // alert("Saving to Gallery... You can share it from there!");
           }
         }
-      } else {
+      } else if (action === 'download') {
         downloadRoastImage(dataUrl);
       }
-
+      
     } catch (error) {
       console.error("Generation failed", error);
       alert("Failed to create image. Please try again.");
@@ -70,12 +72,32 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
 
   const nextTemplate = () => {
     setTemplateIndex((prev) => (prev + 1) % TEMPLATES.length);
-    setGeneratedImage(null); // Reset generated image when template changes
+    setGeneratedImage(null);
   };
 
   const resetView = () => {
     setGeneratedImage(null);
+    setIsFullscreen(false);
   };
+
+  // SCREENSHOT MODE RENDER
+  if (isFullscreen && generatedImage) {
+    return (
+      <div 
+        className="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-0"
+        onClick={() => setIsFullscreen(false)} 
+      >
+        <img 
+          src={generatedImage} 
+          alt="Roast Fullscreen" 
+          className="w-full max-w-lg h-auto object-contain pointer-events-none" 
+        />
+        <div className="absolute bottom-10 bg-black/50 text-white px-4 py-2 rounded-full text-sm animate-pulse pointer-events-none">
+          Take Screenshot Now 📸 • Tap to Exit
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn">
@@ -98,11 +120,20 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
                   src={generatedImage} 
                   alt="Roast Card" 
                   className="w-full h-auto rounded-xl shadow-lg border border-slate-200 dark:border-slate-800"
+                  onClick={() => setIsFullscreen(true)}
                 />
-                <p className="mt-4 text-xs text-center text-slate-500 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-700/50">
-                  <span className="font-bold block mb-1">💡 Tip for Mobile Users</span>
-                  If download doesn't start, <strong>Long Press</strong> the image above to Save or Share.
+                
+                <p className="mt-4 text-xs text-center text-green-600 dark:text-green-400 font-medium">
+                  Image generated! Downloading should start automatically.
                 </p>
+                
+                <button 
+                    onClick={() => setIsFullscreen(true)}
+                    className="mt-2 text-xs text-slate-400 hover:text-slate-600 underline"
+                  >
+                    Still not working? Use Screenshot Mode
+                  </button>
+
                 <button 
                   onClick={resetView}
                   className="mt-4 text-sm font-medium text-pink-600 hover:text-pink-700 underline"
@@ -139,7 +170,7 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
 
         </div>
 
-        {/* Controls - Hide some controls if image is already generated */}
+        {/* Controls */}
         {!generatedImage && (
           <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-3">
             
@@ -156,36 +187,21 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
               Change Template
             </button>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => handleGenerateAndAction('download')}
-                disabled={isProcessing}
-                className="py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
-              >
-                {isProcessing ? '...' : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    Save
-                  </>
-                )}
-              </button>
-              <button 
-                onClick={() => handleGenerateAndAction('share')}
-                disabled={isProcessing}
-                className="py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold rounded-xl hover:from-pink-500 hover:to-purple-500 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
-              >
-                {isProcessing ? '...' : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                    Share
-                  </>
-                )}
-              </button>
-            </div>
+            <button 
+              onClick={() => handleGenerateAndAction('download')}
+              disabled={isProcessing}
+              className="w-full py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold rounded-xl hover:from-pink-500 hover:to-purple-500 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
+            >
+              {isProcessing ? '...' : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Generate & Download
+                </>
+              )}
+            </button>
           </div>
         )}
 
-        {/* If image is generated, show Close/Done button only */}
         {generatedImage && (
            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
              <button 

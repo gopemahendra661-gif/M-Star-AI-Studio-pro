@@ -6,19 +6,17 @@ export const generateRoastImage = async (elementId: string): Promise<{ blob: Blo
 
   // Create canvas
   const canvas = await html2canvas(element, {
-    scale: 2, // High resolution for crisp text
+    scale: 2,
     useCORS: true,
     backgroundColor: null,
     logging: false,
     allowTaint: true,
   });
 
-  // Get Data URL (better for WebView downloads)
-  const dataUrl = canvas.toDataURL('image/png');
+  const dataUrl = canvas.toDataURL('image/png', 0.9); // 0.9 quality to keep size manageable
 
-  // Get Blob (better for Sharing API)
   const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob((b) => resolve(b), 'image/png', 1.0);
+    canvas.toBlob((b) => resolve(b), 'image/png', 0.9);
   });
 
   return { blob, dataUrl };
@@ -27,7 +25,7 @@ export const generateRoastImage = async (elementId: string): Promise<{ blob: Blo
 export const shareRoastImage = async (blob: Blob): Promise<boolean> => {
   if (!blob) return false;
 
-  // Check if Web Share API Level 2 is supported
+  // Try Native Share (Level 1)
   if (navigator.share && navigator.canShare) {
     const file = new File([blob], 'm-star-roast.png', { type: 'image/png' });
     const shareData = {
@@ -42,18 +40,43 @@ export const shareRoastImage = async (blob: Blob): Promise<boolean> => {
         return true;
       } catch (err) {
         console.warn('Share cancelled or failed:', err);
-        return false;
       }
     }
   }
   return false;
 };
 
+// THE REAL DOWNLOAD FIX FOR APK/WEBVIEW
 export const downloadRoastImage = (dataUrl: string) => {
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = `m-star-roast-${Date.now()}.png`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  // Method 1: Try standard download first (works on Desktops/modern Mobile Browsers)
+  const isWebView = /wv|android|iphone|ipad/i.test(navigator.userAgent);
+
+  if (!isWebView) {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `m-star-roast-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return;
+  }
+
+  // Method 2: Server Echo (Works on APK WebViews)
+  // We create a hidden form and submit the base64 data to our API.
+  // The API returns it as an attachment, triggering the Native Download Manager.
+  
+  const form = document.createElement('form');
+  form.action = '/api/download-image';
+  form.method = 'POST';
+  form.target = '_self'; // _self ensures it triggers the current view's download handler
+
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'imageData';
+  input.value = dataUrl;
+
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
 };
