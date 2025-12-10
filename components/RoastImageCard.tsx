@@ -53,9 +53,8 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
         if (blob) {
           const shared = await shareRoastImage(blob);
           if (!shared) {
-            // Fallback: If share fails, trigger the server download so user can share from gallery
+            // Fallback: If share fails, trigger the server download
             downloadRoastImage(dataUrl);
-            // alert("Saving to Gallery... You can share it from there!");
           }
         }
       } else if (action === 'download') {
@@ -92,8 +91,11 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
           alt="Roast Fullscreen" 
           className="w-full max-w-lg h-auto object-contain pointer-events-none" 
         />
-        <div className="absolute bottom-10 bg-black/50 text-white px-4 py-2 rounded-full text-sm animate-pulse pointer-events-none">
-          Take Screenshot Now 📸 • Tap to Exit
+        <div className="absolute bottom-10 bg-black/60 text-white px-6 py-3 rounded-full text-sm animate-pulse pointer-events-none font-bold shadow-2xl border border-white/20">
+          Take Screenshot Now 📸
+        </div>
+        <div className="absolute top-10 right-5 text-white/50 text-xs">
+          Tap anywhere to close
         </div>
       </div>
     );
@@ -119,20 +121,26 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
                 <img 
                   src={generatedImage} 
                   alt="Roast Card" 
-                  className="w-full h-auto rounded-xl shadow-lg border border-slate-200 dark:border-slate-800"
+                  className="w-full h-auto rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 cursor-pointer"
                   onClick={() => setIsFullscreen(true)}
                 />
                 
                 <p className="mt-4 text-xs text-center text-green-600 dark:text-green-400 font-medium">
-                  Image generated! Downloading should start automatically.
+                  Attempting to download...
                 </p>
                 
-                <button 
+                <div className="mt-3 w-full p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                  <p className="text-xs text-blue-600 dark:text-blue-300 text-center mb-2">
+                    Download didn't start?
+                  </p>
+                  <button 
                     onClick={() => setIsFullscreen(true)}
-                    className="mt-2 text-xs text-slate-400 hover:text-slate-600 underline"
+                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm flex items-center justify-center gap-2"
                   >
-                    Still not working? Use Screenshot Mode
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    Open Screenshot Mode
                   </button>
+                </div>
 
                 <button 
                   onClick={resetView}
@@ -208,7 +216,7 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
                 onClick={onClose}
                 className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold rounded-xl"
               >
-                Done
+                Close
               </button>
            </div>
         )}

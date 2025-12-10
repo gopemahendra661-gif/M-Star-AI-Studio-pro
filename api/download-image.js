@@ -1,7 +1,7 @@
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '4mb', // Allow images up to 4MB
+      sizeLimit: '10mb', // Increased to 10MB to prevent payload errors
     },
   },
 };
@@ -10,15 +10,21 @@ export default async function handler(req, res) {
   // Allow CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS,GET');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
+  // Handle preflight
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
+  }
+
+  // Handle GET (Prevents the ugly JSON error if a redirect happens)
+  if (req.method === 'GET') {
+    return res.status(200).send('Image Download Service Ready. Please submit via POST.');
   }
 
   if (req.method !== 'POST') {
@@ -26,14 +32,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { imageData } = req.body;
+    let base64Data = '';
 
-    if (!imageData) {
-      return res.status(400).send("No image data provided");
+    // Handle different content types (JSON vs Form Data)
+    if (req.body && req.body.imageData) {
+      base64Data = req.body.imageData;
+    } else {
+      // Fallback for raw body parsing if needed
+      return res.status(400).send("No image data found in request body.");
     }
 
-    // Remove the data URL prefix (e.g., "data:image/png;base64,")
-    const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
+    // Clean up the base64 string
+    base64Data = base64Data.replace(/^data:image\/\w+;base64,/, "");
+    
+    // Create buffer
     const buffer = Buffer.from(base64Data, 'base64');
 
     // Force the browser/webview to treat this as a file download

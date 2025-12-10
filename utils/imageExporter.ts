@@ -13,10 +13,10 @@ export const generateRoastImage = async (elementId: string): Promise<{ blob: Blo
     allowTaint: true,
   });
 
-  const dataUrl = canvas.toDataURL('image/png', 0.9); // 0.9 quality to keep size manageable
+  const dataUrl = canvas.toDataURL('image/png', 0.95);
 
   const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob((b) => resolve(b), 'image/png', 0.9);
+    canvas.toBlob((b) => resolve(b), 'image/png', 0.95);
   });
 
   return { blob, dataUrl };
@@ -66,7 +66,12 @@ export const downloadRoastImage = (dataUrl: string) => {
   // The API returns it as an attachment, triggering the Native Download Manager.
   
   const form = document.createElement('form');
-  form.action = '/api/download-image';
+  
+  // FIX: Use Absolute URL to prevent Vercel 308 Redirects changing POST to GET
+  // This fixes the "Method Not Allowed" error
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  form.action = `${baseUrl}/api/download-image`;
+  
   form.method = 'POST';
   form.target = '_self'; // _self ensures it triggers the current view's download handler
 
