@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateRoastImage, shareRoastImage, downloadRoastImage } from '../utils/imageExporter';
 
 interface RoastImageCardProps {
@@ -34,9 +34,23 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
   const [templateIndex, setTemplateIndex] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false); 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hideOverlay, setHideOverlay] = useState(false);
 
   const currentTemplate = TEMPLATES[templateIndex];
+
+  // Auto-hide overlay text in fullscreen mode
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (isFullscreen) {
+      setHideOverlay(false);
+      // Wait 2.5 seconds then fade out the text so user can take a clean screenshot
+      timer = setTimeout(() => {
+        setHideOverlay(true);
+      }, 2500);
+    }
+    return () => clearTimeout(timer);
+  }, [isFullscreen]);
 
   const handleGenerateAndAction = async (action: 'download' | 'share') => {
     setIsProcessing(true);
@@ -84,7 +98,7 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
   if (isFullscreen && generatedImage) {
     return (
       <div 
-        className="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-0"
+        className="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-0 cursor-pointer"
         onClick={() => setIsFullscreen(false)} 
       >
         <img 
@@ -92,11 +106,19 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
           alt="Roast Fullscreen" 
           className="w-full max-w-lg h-auto object-contain pointer-events-none" 
         />
-        <div className="absolute bottom-10 bg-black/60 text-white px-6 py-3 rounded-full text-sm animate-pulse pointer-events-none font-bold shadow-2xl border border-white/20">
-          Take Screenshot Now 📸
+        
+        {/* Floating Instructions that Fade Out */}
+        <div className={`absolute inset-x-0 bottom-10 flex flex-col items-center pointer-events-none transition-opacity duration-700 ${hideOverlay ? 'opacity-0' : 'opacity-100'}`}>
+          <div className="bg-black/60 text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl border border-white/20 mb-2">
+            Take Screenshot Now 📸
+          </div>
+          <div className="text-white/50 text-xs">
+            (Text will disappear in a second)
+          </div>
         </div>
-        <div className="absolute top-10 right-5 text-white/50 text-xs">
-          Tap anywhere to close
+
+        <div className={`absolute top-10 right-5 text-white/40 text-xs transition-opacity duration-700 ${hideOverlay ? 'opacity-0' : 'opacity-100'}`}>
+          Tap image to close
         </div>
       </div>
     );
