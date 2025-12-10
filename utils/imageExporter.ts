@@ -1,31 +1,74 @@
 import html2canvas from 'html2canvas';
 
-export const generateRoastImage = async (elementId: string): Promise<{ blob: Blob | null, dataUrl: string }> => {
-  const element = document.getElementById(elementId);
-  if (!element) throw new Error("Capture element not found");
+// Type Declarations for Android Bridge
+declare global {
+  interface Window {
+    AndroidBridge?: {
+      downloadImage: (base64Data: string, filename?: string) => void;
+      shareImage: (base64Data: string) => void;
+    };
+  }
+}
 
-  // Create canvas
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: null,
-    logging: false,
-    allowTaint: true,
-  });
+// APK Compatible Download Functions
+export const generateRoastImage = async (elementId: string): Promise<{ blob: Blob | null; dataUrl: string }> => {
+  try {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      throw new Error('Element not found');
+    }
 
-  const dataUrl = canvas.toDataURL('image/png', 0.95);
+    // Generate canvas with better quality for APK
+    const canvas = await html2canvas(element, {
+      backgroundColor: null,
+      scale: 2, // Higher quality
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      onclone: (clonedDoc) => {
+        // Ensure all styles are loaded
+        const clonedElement = clonedDoc.getElementById(elementId);
+        if (clonedElement) {
+          clonedElement.style.display = 'block';
+          clonedElement.style.visibility = 'visible';
+        }
+      }
+    });
 
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob((b) => resolve(b), 'image/png', 0.95);
-  });
+    // Convert to data URL
+    const dataUrl = canvas.toDataURL('image/png', 1.0);
+    
+    // Convert to blob
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+    });
 
-  return { blob, dataUrl };
+    return { blob, dataUrl };
+  } catch (error) {
+    console.error('Image generation failed:', error);
+    throw error;
+  }
 };
 
 export const shareRoastImage = async (blob: Blob): Promise<boolean> => {
   if (!blob) return false;
 
-  // Try Native Share (Level 1)
+  // Method 1: APK Bridge (If available - Best Experience)
+  if (window.AndroidBridge && typeof window.AndroidBridge.shareImage === 'function') {
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = () => {
+        const base64data = (reader.result as string).split(',')[1];
+        window.AndroidBridge?.shareImage(base64data);
+      };
+      return true;
+    } catch (e) {
+      console.error("Bridge share failed", e);
+    }
+  }
+
+  // Method 2: Native Share (Level 1)
   if (navigator.share && navigator.canShare) {
     const file = new File([blob], 'm-star-roast.png', { type: 'image/png' });
     const shareData = {
@@ -48,7 +91,14 @@ export const shareRoastImage = async (blob: Blob): Promise<boolean> => {
 
 // THE REAL DOWNLOAD FIX FOR APK/WEBVIEW
 export const downloadRoastImage = (dataUrl: string) => {
-  // Method 1: Try standard download first (Desktops/Modern Browsers)
+  // Method 1: APK Bridge (If available - Fastest)
+  if (window.AndroidBridge && typeof window.AndroidBridge.downloadImage === 'function') {
+    const base64Data = dataUrl.split(',')[1];
+    window.AndroidBridge.downloadImage(base64Data, `mstar_roast_${Date.now()}.png`);
+    return;
+  }
+
+  // Method 2: Try standard download (Desktops/Modern Browsers)
   const isWebView = /wv|android|iphone|ipad/i.test(navigator.userAgent);
 
   if (!isWebView) {
@@ -61,8 +111,9 @@ export const downloadRoastImage = (dataUrl: string) => {
     return;
   }
 
-  // Method 2: Server Echo (Safe for APKs)
+  // Method 3: Server Echo (Safe for APKs without Bridge)
   // We use target="_blank" so the main app doesn't navigate to a white screen if it fails.
+  // This uses the API route we defined to force a file download via the browser.
   
   const form = document.createElement('form');
   
@@ -71,7 +122,7 @@ export const downloadRoastImage = (dataUrl: string) => {
   form.action = `${baseUrl}/api/download-image?t=${Date.now()}`;
   
   form.method = 'POST';
-  form.target = '_blank'; // CRITICAL: Opens in system browser/new window to avoid white screen in app
+  form.target = '_blank'; // Opens in system browser/new window to avoid white screen in app
   form.enctype = 'application/x-www-form-urlencoded';
 
   const input = document.createElement('input');
