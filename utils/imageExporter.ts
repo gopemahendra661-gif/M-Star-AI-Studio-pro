@@ -48,7 +48,7 @@ export const shareRoastImage = async (blob: Blob): Promise<boolean> => {
 
 // THE REAL DOWNLOAD FIX FOR APK/WEBVIEW
 export const downloadRoastImage = (dataUrl: string) => {
-  // Method 1: Try standard download first (works on Desktops/modern Mobile Browsers)
+  // Method 1: Try standard download first (Desktops/Modern Browsers)
   const isWebView = /wv|android|iphone|ipad/i.test(navigator.userAgent);
 
   if (!isWebView) {
@@ -61,19 +61,18 @@ export const downloadRoastImage = (dataUrl: string) => {
     return;
   }
 
-  // Method 2: Server Echo (Works on APK WebViews)
-  // We create a hidden form and submit the base64 data to our API.
-  // The API returns it as an attachment, triggering the Native Download Manager.
+  // Method 2: Server Echo (Safe for APKs)
+  // We use target="_blank" so the main app doesn't navigate to a white screen if it fails.
   
   const form = document.createElement('form');
   
-  // FIX: Use Absolute URL to prevent Vercel 308 Redirects changing POST to GET
-  // This fixes the "Method Not Allowed" error
+  // Anti-redirect hack: Add timestamp query param
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  form.action = `${baseUrl}/api/download-image`;
+  form.action = `${baseUrl}/api/download-image?t=${Date.now()}`;
   
   form.method = 'POST';
-  form.target = '_self'; // _self ensures it triggers the current view's download handler
+  form.target = '_blank'; // CRITICAL: Opens in system browser/new window to avoid white screen in app
+  form.enctype = 'application/x-www-form-urlencoded';
 
   const input = document.createElement('input');
   input.type = 'hidden';
@@ -83,5 +82,9 @@ export const downloadRoastImage = (dataUrl: string) => {
   form.appendChild(input);
   document.body.appendChild(form);
   form.submit();
-  document.body.removeChild(form);
+  
+  // Cleanup
+  setTimeout(() => {
+    document.body.removeChild(form);
+  }, 1000);
 };

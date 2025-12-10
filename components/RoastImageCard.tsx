@@ -53,8 +53,8 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
         if (blob) {
           const shared = await shareRoastImage(blob);
           if (!shared) {
-            // Fallback: If share fails, trigger the server download
             downloadRoastImage(dataUrl);
+            alert("Opening download options...");
           }
         }
       } else if (action === 'download') {
@@ -125,20 +125,20 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
                   onClick={() => setIsFullscreen(true)}
                 />
                 
-                <p className="mt-4 text-xs text-center text-green-600 dark:text-green-400 font-medium">
-                  Attempting to download...
+                <p className="mt-4 text-xs text-center text-slate-500 font-medium">
+                  Download opened in new window.
                 </p>
                 
                 <div className="mt-3 w-full p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
-                  <p className="text-xs text-blue-600 dark:text-blue-300 text-center mb-2">
-                    Download didn't start?
+                  <p className="text-xs text-blue-600 dark:text-blue-300 text-center mb-2 font-semibold">
+                    Issues with download?
                   </p>
                   <button 
                     onClick={() => setIsFullscreen(true)}
                     className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm flex items-center justify-center gap-2"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                    Open Screenshot Mode
+                    Use Screenshot Mode (Recommended)
                   </button>
                 </div>
 
