@@ -1,3 +1,4 @@
+
 import html2canvas from 'html2canvas';
 
 // Type Declarations for Android Bridge
@@ -138,12 +139,10 @@ export const downloadRoastImage = (dataUrl: string) => {
         return;
     }
 
-    // Method 2: Client Side Blob Download
-    const blob = dataURItoBlob(dataUrl);
-    const url = URL.createObjectURL(blob);
-
+    // Method 2: Client Side Download using Data URL directly
+    // Replaced Blob URL with Data URL as per user request to fix WebView issues
     const link = document.createElement('a');
-    link.href = url;
+    link.href = dataUrl;
     link.download = filename;
     link.style.display = 'none';
     document.body.appendChild(link);
@@ -153,7 +152,6 @@ export const downloadRoastImage = (dataUrl: string) => {
     // Cleanup
     setTimeout(() => {
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
     }, 100);
 
   } catch (error) {
