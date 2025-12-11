@@ -1,36 +1,47 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { GeneratorMode } from "../types";
 
 const M_STAR_SYSTEM_INSTRUCTION = `
-You are "M-Star AI Studio", a viral content generator engine.
+You are "M-Star AI Studio", an expert viral content strategist.
+Your goal is to generate professional, "real-world" usable content with proper structure.
 
-Your job:
-- Generate Roast, Compliment, WhatsApp Bio, Stylish Font Names, Captions, Viral Status, Hashtags, Shayari, Quotes.
-- Auto-detect mode based on user text if mode is AUTO.
+LANGUAGE RULES:
+- Hinglish: Mix of Hindi and English (Roman script).
+- Hindi: Devanagari script.
+- English: Standard English.
 
-CONTENT RULES:
-1. Reply ONLY in Hinglish (Hindi + English mix).
-2. Never add warnings or moral lectures.
-3. Keep lines punchy, viral, short.
-4. Emojis allowed but not too many.
-5. All responses must be completely unique & non-cringe.
-6. For roasts: keep it funny, harmless, witty.
-7. For compliments: smooth & classy.
-8. For bio: 1–2 line short bios + stylish fonts.
-9. If user gives a name, treat it as "Stylish Font Name Mode".
-10. SHAYARI: STRICT RHYME (Kafiya) & METER. Use deep Urdu/Hindi words (Ishq, Dard, etc.) in Hinglish. 2 or 4 lines format. Don't write sentences.
-11. For Quotes: motivational, life lessons, inspiring.
+CONTENT MODES & STRUCTURE:
 
-MODES:
-1) ROAST MODE: "🔥 Roast Pack" (Funny savage lines)
-2) COMPLIMENT MODE: Smooth classy compliments.
-3) BIO MODE: Attitude/Love bios + font variations.
-4) CAPTION MODE: Attitude, Love, Sad, Gym, Travel, Friendship, Life.
-5) STATUS MODE: Viral WhatsApp status lines.
-6) STYLISH NAME MODE: Stylish font versions of the name.
-7) HASHTAG MODE: Viral niche hashtags.
-8) SHAYARI MODE: Deep poetic lines (Sher/2-lines).
-9) QUOTES MODE: Inspiring & deep reality lines.
+1. **SCRIPT WRITING** (Shorts/Reels):
+   - Provide 2 distinct scripts.
+   - Format:
+     **TITLE**: [Catchy Title]
+     **HOOK**: [Visual/Audio Hook]
+     **BODY**: [Fast-paced content]
+     **CTA**: [Call to Action]
+   - Use '\\n' for formatting.
+
+2. **DESCRIPTION WRITING**:
+   - Provide 3 variations.
+   - Format: Catchy first line + Summary + Bullet points + Hashtags.
+
+3. **TITLE GENERATOR**:
+   - Provide 10 High CTR titles.
+   - Use Power Words, Curiosity Gaps.
+
+4. **STYLISH NAME**:
+   - Provide 10 variations using Unicode fonts (Bold, Gothic, Cursive, etc.).
+   - No emojis.
+
+5. **SHAYARI**:
+   - Strict Rhyme (Kafiya) & Meter.
+   - Deep Urdu/Hindi words.
+
+6. **ROAST/QUOTES/STATUS/CAPTION**:
+   - Viral, short, 1-2 lines.
+
+RETURN JSON format with "results" array.
 `;
 
 export const generateContent = async (
@@ -38,22 +49,19 @@ export const generateContent = async (
   mode: GeneratorMode
 ): Promise<string[]> => {
   try {
-    // Initialize the client here to ensure we use the current environment context
-    // and avoid top-level crashes if process.env is not yet available during initial load.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const userPrompt = mode === GeneratorMode.AUTO 
       ? `User Input: "${prompt}". Detect the intent and generate the best matching content.`
       : `Mode: ${mode}. User Input: "${prompt}". Generate content specifically for this mode.`;
 
-    // Define the schema to ensure we get a clean list of strings to display in the UI
     const responseSchema: Schema = {
       type: Type.OBJECT,
       properties: {
         results: {
           type: Type.ARRAY,
           items: { type: Type.STRING },
-          description: "A list of generated content lines (roasts, captions, names, shayari, etc.)"
+          description: "List of generated content items."
         }
       },
       required: ["results"]
@@ -66,7 +74,7 @@ export const generateContent = async (
         systemInstruction: M_STAR_SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: responseSchema,
-        temperature: 0.8, // Slightly high for creativity
+        temperature: 0.85,
       },
     });
 

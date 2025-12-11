@@ -1,4 +1,5 @@
-// generate.js - FIXED VERSION
+
+// generate.js - PROFESSIONAL VERSION
 // Standard Node.js Serverless Function
 
 export const config = {
@@ -22,169 +23,111 @@ const getSystemInstruction = (language, mode) => {
   if (language === 'English') langRule = "Reply ONLY in English.";
 
   return `
-You are "M-Star AI Studio", a viral content generator.
+You are "M-Star AI Studio", an expert viral content strategist and professional copywriter.
+Your goal is to generate high-quality, "real-world" usable content for social media and professional use.
 
-CRITICAL: You MUST return ONLY a VALID JSON object. No explanations, no markdown, no extra text.
-
-${langRule}
-
-CONTENT RULES:
-1. Never add warnings or moral lectures.
-2. Keep lines punchy, viral, short (1-2 lines max).
-3. Use 1-3 emojis per line (max).
-4. All responses must be completely unique & creative.
-5. Roasts: funny, witty, harmless.
-6. Compliments: smooth, classy.
-7. Bios: 1-2 lines + font variations.
-8. Names: 8-10 stylish font versions.
-9. Captions/Status: 6-8 viral lines.
-10. Hashtags: 8-12 relevant hashtags.
-11. SHAYARI (IMPORTANT): 
-    - MUST be poetic, deep, and emotional. 
-    - STRICT RHYMING (Kafiya) is mandatory. 
-    - Use Urdu/Hindi poetic words (like Ishq, Dard, Khwab, Zindagi) in Hinglish.
-    - Format: Use '\\n' for line breaks. 
-    - Style: 2-line (Sher) or 4-line stanzas. 
-    - Do NOT write simple conversational sentences. Make it sound like Mirza Ghalib or Gulzar.
-12. Quotes: Motivational, life lessons, attitude, or deep reality.
+CRITICAL: Return ONLY a VALID JSON object with a "results" array.
+LANGUAGE: ${langRule}
 
 MODE: ${mode}
 
-OUTPUT FORMAT (STRICTLY FOLLOW):
+--- SPECIFIC INSTRUCTIONS PER MODE ---
+
+1. **SCRIPT WRITING** (YouTube Shorts / Reels):
+   - Output: 2 Complete, distinct scripts.
+   - **Structure (Use '\\n' for line breaks)**:
+     TITLE: [Catchy Title]
+     
+     [HOOK]: (0-3s visual/audio hook to stop scrolling)
+     
+     [SCENE]: (Brief visual direction)
+     
+     [BODY]: (Main fast-paced content)
+     
+     [CTA]: (Strong Call to Action - Subscribe/Follow)
+
+2. **DESCRIPTION WRITING** (Instagram / YouTube):
+   - Output: 3 Distinct variations.
+   - **Structure**:
+     [Hook Line for first 2 lines]
+     
+     [Engaging Summary of content]
+     
+     Key Points:
+     • [Bullet Point 1]
+     • [Bullet Point 2]
+     • [Bullet Point 3]
+     
+     [30 relevant SEO hashtags]
+
+3. **TITLE GENERATOR** (YouTube / Blog):
+   - Output: 10 High CTR (Click-Through Rate) titles.
+   - Techniques: Curiosity Gaps, Negativity Bias, "How To", Listicle Numbers.
+   - Style: Punchy, Viral, Shocking.
+
+4. **STYLISH NAME**:
+   - Output: 10 Variations.
+   - Convert text into Unicode fonts: 𝐁𝐨𝐥𝐝, 𝐼𝑡𝑎𝑙𝑖𝑐, 𝕲𝖔𝖙𝖍𝖎𝖈, 𝒞𝓊𝓇𝓈𝒾𝓋𝑒, Ⓒⓘⓡⓒⓛⓔⓓ, Ｓｐａｃｅｄ, etc.
+   - No emojis, just the text styles.
+
+5. **ROAST**:
+   - Output: 8 Savage lines.
+   - Style: Witty, funny, sarcastic, maybe a bit mean but harmless.
+
+6. **SHAYARI**:
+   - Output: 6 High-quality Shayaris.
+   - Strict Rhyme (Kafiya) & Meter.
+   - Format: 2 lines (Sher) or 4 lines.
+   - Use deep Urdu/Hindi words (Ishq, Zindagi, Dard).
+
+7. **BIO / STATUS / CAPTION / QUOTES**:
+   - Output: 8 Viral lines.
+   - Style: Aesthetic, Attitude, or Deep depending on context.
+
+8. **HASHTAGS**:
+   - Output: 15 Highly relevant, niche-specific hashtags.
+
+OUTPUT FORMAT EXAMPLE:
 {
   "results": [
-    "Line 1 content",
-    "Line 1\\nLine 2 (for Shayari)"
+    "Item 1 content...",
+    "Item 2 content..."
   ]
 }
-
-Generate exactly 8 items for all modes except:
-- Stylish Name: 10 items
-- Hashtag: 12 items
-- Bio: 6 items
-- Shayari: 6 items (High Quality)
 `;
 };
 
 // Helper function to parse AI response
 const parseAIResponse = (contentString) => {
   try {
-    console.log("Raw response (first 300 chars):", contentString?.substring(0, 300));
-    
-    if (!contentString || typeof contentString !== 'string') {
-      console.error("Invalid content string");
-      return [];
-    }
+    if (!contentString || typeof contentString !== 'string') return [];
 
     let cleanText = contentString.trim();
     
-    // Remove markdown code blocks
-    cleanText = cleanText.replace(/^```json\s*/i, '');
-    cleanText = cleanText.replace(/^```\s*/i, '');
-    cleanText = cleanText.replace(/\s*```$/g, '');
+    // Cleanup markdown
+    cleanText = cleanText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '');
     
-    // Remove common prefixes
-    cleanText = cleanText.replace(/^(Here (is|are) the|Generated|Results|Output):?\s*/i, '');
-    
-    // Try to extract JSON object
+    // Try Parsing
     const jsonStart = cleanText.indexOf('{');
     const jsonEnd = cleanText.lastIndexOf('}');
     
-    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-      const possibleJson = cleanText.substring(jsonStart, jsonEnd + 1);
-      
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      const jsonStr = cleanText.substring(jsonStart, jsonEnd + 1);
       try {
-        const parsed = JSON.parse(possibleJson);
-        
+        const parsed = JSON.parse(jsonStr);
         if (parsed.results && Array.isArray(parsed.results)) {
-          const results = parsed.results
-            .filter(item => item && typeof item === 'string')
-            .map(item => item.trim())
-            .filter(item => item.length > 3);
-          
-          if (results.length > 0) {
-            console.log("Successfully parsed JSON with", results.length, "items");
-            return results;
-          }
+          return parsed.results.filter(i => typeof i === 'string' && i.length > 2);
         }
-        
-        // If direct results not found, check if array
-        if (Array.isArray(parsed)) {
-          const results = parsed
-            .filter(item => item && typeof item === 'string')
-            .map(item => item.trim())
-            .filter(item => item.length > 3);
-          
-          if (results.length > 0) {
-            console.log("Parsed array with", results.length, "items");
-            return results;
-          }
-        }
-      } catch (e) {
-        console.log("JSON parse failed, trying other methods:", e.message);
-      }
+      } catch(e) { console.log("JSON parse error", e); }
     }
-    
-    // Try array format
-    const arrayStart = cleanText.indexOf('[');
-    const arrayEnd = cleanText.lastIndexOf(']');
-    
-    if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-      const possibleArray = cleanText.substring(arrayStart, arrayEnd + 1);
-      
-      try {
-        const parsed = JSON.parse(possibleArray);
-        if (Array.isArray(parsed)) {
-          const results = parsed
-            .filter(item => item && typeof item === 'string')
-            .map(item => item.trim())
-            .filter(item => item.length > 3);
-          
-          if (results.length > 0) {
-            console.log("Parsed array format with", results.length, "items");
-            return results;
-          }
-        }
-      } catch (e) {
-        // Continue to fallback
-      }
-    }
-    
-    // FALLBACK: Extract as list
-    console.log("Using fallback parsing");
-    const lines = cleanText.split('\n')
-      .map(line => {
-        // Clean each line
-        let cleanLine = line.trim();
-        // Remove list markers
-        cleanLine = cleanLine.replace(/^[0-9]+[\.\)\-]\s*/, '');
-        cleanLine = cleanLine.replace(/^[\-\*\+]\s*/, '');
-        // Remove quotes
-        cleanLine = cleanLine.replace(/^["']|["']$/g, '');
-        // Remove trailing punctuation
-        cleanLine = cleanLine.replace(/[,\.;]+$/, '');
-        return cleanLine;
-      })
-      .filter(line => {
-        // Filter out invalid lines
-        if (!line || line.length < 4) return false;
-        if (line.includes('{') || line.includes('}')) return false;
-        if (line.includes('```')) return false;
-        if (line.toLowerCase().startsWith('here ')) return false;
-        if (line.toLowerCase().startsWith('result')) return false;
-        if (line.toLowerCase().startsWith('json')) return false;
-        if (line.toLowerCase().startsWith('output')) return false;
-        if (line.toLowerCase().startsWith('note:')) return false;
-        if (line.toLowerCase().includes('sorry')) return false;
-        return true;
-      })
-      .slice(0, 10); // Limit to 10 items
-    
-    console.log("Fallback parsing found", lines.length, "items");
-    return lines;
-    
+
+    // Fallback: Split by newlines if JSON fails
+    return cleanText.split('\n')
+      .map(l => l.replace(/^\d+[\.\)]\s*/, '').replace(/^[\-\*]\s*/, '').trim())
+      .filter(l => l.length > 5 && !l.includes('{') && !l.includes('}'));
+
   } catch (error) {
-    console.error("Parse AI Response Error:", error);
+    console.error("Parse Error:", error);
     return [];
   }
 };
@@ -194,10 +137,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -212,41 +152,15 @@ export default async function handler(req, res) {
     const { prompt, mode = 'Auto Detect', language = 'Hinglish' } = req.body;
     const apiKey = process.env.OPENROUTER_API_KEY;
 
-    if (!apiKey) {
-      console.error("API Key Missing");
-      return res.status(500).json({ 
-        error: 'Server Config Error: OPENROUTER_API_KEY is missing. Please check Vercel environment variables.' 
-      });
-    }
-
-    if (!prompt || prompt.trim().length < 2) {
-      return res.status(400).json({ 
-        error: 'Please enter some text (minimum 2 characters)' 
-      });
-    }
+    if (!apiKey) return res.status(500).json({ error: 'Server Config Error: Missing API Key' });
+    if (!prompt || prompt.length < 2) return res.status(400).json({ error: 'Prompt too short' });
 
     const systemInstruction = getSystemInstruction(language, mode);
+    const userPrompt = `Generate ${mode} for: "${prompt}" in ${language}.`;
 
-    const userPrompt = mode === 'Auto Detect' 
-      ? `User Input: "${prompt}". Detect intent and generate matching content in ${language}.`
-      : `Generate ${mode} content for: "${prompt}" in ${language}.`;
-
-    console.log(`Generating for: Mode=${mode}, Language=${language}, Prompt="${prompt.substring(0, 50)}..."`);
-
-    let lastError = null;
-    let successfulModel = null;
-    let attempts = 0;
-
-    // Try each model
+    // Try models sequentially
     for (const model of FREE_MODELS) {
-      attempts++;
       try {
-        console.log(`Attempt ${attempts}: Trying model ${model}`);
-        
-        // Timeout 30 seconds
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -258,100 +172,35 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             model: model,
             messages: [
-              { 
-                role: "system", 
-                content: systemInstruction 
-              },
-              { 
-                role: "user", 
-                content: userPrompt 
-              }
+              { role: "system", content: systemInstruction },
+              { role: "user", content: userPrompt }
             ],
             temperature: 0.8,
-            max_tokens: 1500,
-            response_format: { type: "json_object" } // Force JSON response
-          }),
-          signal: controller.signal
+            max_tokens: 2000, // Increased for scripts
+            response_format: { type: "json_object" }
+          })
         });
 
-        clearTimeout(timeoutId);
-
-        // Handle specific errors
-        if (response.status === 429) {
-          console.warn(`Model ${model} rate limited. Skipping.`);
-          continue;
-        }
-
-        if (response.status === 404 || response.status === 400) {
-          console.warn(`Model ${model} unavailable (${response.status}). Skipping.`);
-          continue;
-        }
-
-        if (!response.ok) {
-          const errorText = await response.text().catch(() => 'No error text');
-          throw new Error(`OpenRouter Error ${response.status}: ${errorText.substring(0, 200)}`);
-        }
+        if (response.status === 429) continue; // Rate limit, try next
+        if (!response.ok) continue;
 
         const data = await response.json();
-        const contentString = data.choices?.[0]?.message?.content;
-
-        if (!contentString) {
-          console.warn(`Model ${model} returned empty content`);
-          continue;
-        }
-
-        // Parse the response
-        const results = parseAIResponse(contentString);
-
-        if (results.length === 0) {
-          console.warn(`Model ${model} returned no parsable results`);
-          console.log("Raw content for debugging:", contentString.substring(0, 500));
-          continue;
-        }
-
-        // Success!
-        successfulModel = model;
-        console.log(`Success with model: ${model}, got ${results.length} items`);
+        const content = data.choices?.[0]?.message?.content;
         
-        return res.status(200).json({ 
-          results,
-          modelUsed: model,
-          itemCount: results.length
-        });
-
-      } catch (error) {
-        console.warn(`Model ${model} failed:`, error.message);
-        lastError = error;
-        // Continue to next model
+        const results = parseAIResponse(content);
+        
+        if (results.length > 0) {
+          return res.status(200).json({ results, modelUsed: model });
+        }
+      } catch (e) {
+        console.warn(`Model ${model} failed`, e);
       }
     }
 
-    // All models failed
-    console.error("All models failed after", attempts, "attempts");
-    
-    // Provide helpful error message
-    let errorMessage = "AI service is temporarily unavailable. ";
-    
-    if (lastError?.message?.includes('rate limit') || lastError?.message?.includes('429')) {
-      errorMessage = "AI models are busy (rate limited). Please wait 20 seconds and try again.";
-    } else if (lastError?.message?.includes('No usable results')) {
-      errorMessage = "AI generated content but couldn't parse it. Try a different prompt.";
-    } else if (!apiKey) {
-      errorMessage = "Server configuration error. Please contact support.";
-    } else {
-      errorMessage += `Last error: ${lastError?.message || 'Unknown error'}`;
-    }
-
-    return res.status(503).json({ 
-      error: errorMessage,
-      attempts: attempts,
-      lastError: lastError?.message
-    });
+    return res.status(503).json({ error: "All AI models are currently busy. Please try again in a moment." });
 
   } catch (error) {
-    console.error("Handler Error:", error);
-    return res.status(500).json({ 
-      error: `Server error: ${error.message}` 
-    });
+    console.error("Handler Fatal Error:", error);
+    return res.status(500).json({ error: error.message });
   }
 }

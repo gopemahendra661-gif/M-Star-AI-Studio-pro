@@ -1,3 +1,4 @@
+
 export enum GeneratorMode {
   AUTO = 'Auto Detect',
   ROAST = 'Roast',
@@ -8,7 +9,10 @@ export enum GeneratorMode {
   CAPTION = 'Caption',
   STATUS = 'Status',
   STYLISH_NAME = 'Stylish Name',
-  HASHTAG = 'Hashtag'
+  HASHTAG = 'Hashtag',
+  SCRIPT = 'Script Writing',
+  DESCRIPTION = 'Description Writing',
+  TITLE = 'Title Generator'
 }
 
 export type Language = 'Hinglish' | 'Hindi' | 'English';

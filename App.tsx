@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
@@ -171,6 +172,18 @@ const App: React.FC = () => {
 
   const displayItems = showSaved ? savedResults : results;
 
+  // Placeholder Logic
+  const getPlaceholder = () => {
+    if (mode === GeneratorMode.AUTO) return `Type or speak in ${language}...`;
+    if (mode === GeneratorMode.ROAST) return `Who needs a roast? (${language})`;
+    if (mode === GeneratorMode.COMPLIMENT) return `Who to compliment? (${language})`;
+    if (mode === GeneratorMode.STYLISH_NAME) return "Enter name (e.g., 'Aditya')";
+    if (mode === GeneratorMode.SCRIPT) return "Topic for video script (e.g., 'Travel Vlog')";
+    if (mode === GeneratorMode.DESCRIPTION) return "What is the video about?";
+    if (mode === GeneratorMode.TITLE) return "Topic for viral titles...";
+    return `Enter your topic (${language})...`;
+  };
+
   return (
     <div className={isDarkMode ? 'dark' : ''}>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 flex flex-col items-center">
@@ -214,13 +227,7 @@ const App: React.FC = () => {
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={
-                            mode === GeneratorMode.AUTO ? `Type or speak in ${language}...` :
-                            mode === GeneratorMode.ROAST ? `Who needs a roast? (${language})` :
-                            mode === GeneratorMode.COMPLIMENT ? `Who to compliment? (${language})` :
-                            mode === GeneratorMode.STYLISH_NAME ? "Enter name (e.g., 'Aditya')" :
-                            `Enter your topic (${language})...`
-                        }
+                        placeholder={getPlaceholder()}
                         className="w-full bg-transparent text-slate-900 dark:text-white p-3 pr-12 focus:outline-none resize-none h-14 md:h-auto overflow-hidden placeholder-slate-400 dark:placeholder-slate-500 rounded-lg"
                         rows={1}
                       />
