@@ -51,6 +51,62 @@ const App: React.FC = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // --- FLUTTER BRIDGE LISTENER ---
+  useEffect(() => {
+    const handleBridgeRequest = async (e: any) => {
+      const { prompt: newPrompt, mode: newMode, language: newLang } = e.detail;
+      
+      console.log("React received bridge request:", e.detail);
+
+      // 1. Update UI State
+      if (newPrompt) setPrompt(newPrompt);
+      if (newMode) setMode(newMode as GeneratorMode);
+      if (newLang) setLanguage(newLang as Language);
+
+      // 2. Trigger Generation
+      setLoading(true);
+      setError(null);
+      setShowSaved(false);
+
+      try {
+        const finalMode = (newMode || mode) as GeneratorMode;
+        const finalLang = (newLang || language) as Language;
+        const finalPrompt = newPrompt || prompt;
+
+        // Use the service directly to avoid state batching issues
+        const generatedItems = await generateContent(finalPrompt, finalMode, finalLang);
+        
+        setResults(generatedItems);
+
+        // 3. Send Result Back to Flutter
+        if (window.flutter_inappwebview) {
+          window.flutter_inappwebview.callHandler('contentGenerationResult', {
+             mode: finalMode,
+             content: JSON.stringify({ results: generatedItems }), // Sending as JSON string usually expected by bridges
+             status: 'success'
+          });
+        }
+
+      } catch (err: any) {
+        console.error("Bridge Generation Error:", err);
+        setError(err.message || "Bridge error");
+        
+        if (window.flutter_inappwebview) {
+          window.flutter_inappwebview.callHandler('contentGenerationResult', {
+             error: err.message,
+             status: 'error'
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    window.addEventListener('mstar-bridge-generate', handleBridgeRequest);
+    return () => window.removeEventListener('mstar-bridge-generate', handleBridgeRequest);
+  }, [mode, language, prompt]); // Dependencies for default values
+
+
   // Safe Save
   useEffect(() => {
     try {

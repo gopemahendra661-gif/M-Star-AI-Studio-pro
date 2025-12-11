@@ -26,3 +26,13 @@ export interface GenerationResponse {
   items: string[];
   detectedMode?: string;
 }
+
+// Global Window Extension for Flutter Bridge
+declare global {
+  interface Window {
+    generateAIContent: (prompt: string, mode: string, language: string) => void;
+    flutter_inappwebview?: {
+      callHandler: (handlerName: string, ...args: any[]) => Promise<any>;
+    };
+  }
+}

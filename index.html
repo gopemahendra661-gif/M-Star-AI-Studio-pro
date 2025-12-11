@@ -69,5 +69,24 @@
   <body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
+    
+    <!-- FLUTTER WEBVIEW BRIDGE -->
+    <script>
+      // This function matches the interface expected by the Flutter App
+      window.generateAIContent = (prompt, mode, language) => {
+        console.log("Flutter Bridge Request Recieved:", { prompt, mode, language });
+        
+        // Dispatch a custom event that React will listen to
+        const event = new CustomEvent('mstar-bridge-generate', { 
+          detail: { prompt, mode, language } 
+        });
+        window.dispatchEvent(event);
+      };
+
+      // Helper to inform Flutter that the web app is ready (optional)
+      if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+         window.flutter_inappwebview.callHandler('webAppReady', { status: 'ready' });
+      }
+    </script>
   </body>
 </html>
