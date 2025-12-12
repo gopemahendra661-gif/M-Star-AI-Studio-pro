@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { generateRoastImage, shareRoastImage, downloadRoastImage } from '../utils/imageExporter';
 
@@ -10,7 +11,7 @@ const TEMPLATES = [
   {
     id: 'cosmic',
     name: 'Cosmic Vibe',
-    containerClass: 'bg-gradient-to-br from-purple-700 via-fuchsia-600 to-orange-500 text-white',
+    containerClass: 'bg-gradient-to-br from-purple-700 via-fuchsia-600 to-orange-500 text-white shadow-xl',
     textClass: 'font-bold drop-shadow-md',
     footerClass: 'text-white/80'
   },
@@ -27,6 +28,41 @@ const TEMPLATES = [
     containerClass: 'bg-white border border-slate-200 text-slate-800 shadow-xl',
     textClass: 'font-serif italic font-semibold',
     footerClass: 'text-slate-400 uppercase tracking-widest text-[10px]'
+  },
+  {
+    id: 'royal',
+    name: 'Royal Luxury',
+    containerClass: 'bg-slate-900 border-2 border-yellow-500/50 shadow-2xl',
+    textClass: 'font-serif text-yellow-100 font-medium tracking-wide drop-shadow-md',
+    footerClass: 'text-yellow-500/60 uppercase tracking-[0.2em] text-[10px]'
+  },
+  {
+    id: 'brutalist',
+    name: 'Brutalist Pop',
+    containerClass: 'bg-[#ffde00] border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black rounded-none',
+    textClass: 'font-black uppercase tracking-tighter leading-tight',
+    footerClass: 'text-black font-bold border-t-2 border-black pt-2 w-full text-center'
+  },
+  {
+    id: 'sunset',
+    name: 'Sunset Fade',
+    containerClass: 'bg-gradient-to-b from-indigo-900 via-purple-800 to-pink-700 text-white shadow-lg',
+    textClass: 'font-sans font-bold italic drop-shadow-lg',
+    footerClass: 'text-pink-200/50 font-medium'
+  },
+  {
+    id: 'vintage',
+    name: 'Vintage Note',
+    containerClass: 'bg-[#f4f1ea] border border-[#dcd7c9] shadow-inner text-[#4a4a4a] bg-[radial-gradient(#e3e0d8_1px,transparent_1px)] [background-size:16px_16px]',
+    textClass: 'font-serif font-medium leading-relaxed',
+    footerClass: 'text-[#8c887d] italic text-xs'
+  },
+  {
+    id: 'ocean',
+    name: 'Deep Ocean',
+    containerClass: 'bg-gradient-to-tr from-[#0f172a] to-[#1e293b] border-t border-cyan-500/30 shadow-[0_10px_40px_-10px_rgba(6,182,212,0.3)]',
+    textClass: 'text-cyan-50 font-light tracking-wide',
+    footerClass: 'text-cyan-500/40 uppercase tracking-widest text-[9px]'
   }
 ];
 
@@ -175,8 +211,9 @@ const RoastImageCard: React.FC<RoastImageCardProps> = ({ content, onClose }) => 
           ) : (
             <div 
               id="roast-card-capture"
+              // Removed shadow-xl from here, added to specific templates
               className={`
-                relative w-full aspect-[4/5] p-8 flex flex-col justify-center items-center text-center rounded-xl transition-all duration-500 shadow-xl
+                relative w-full aspect-[4/5] p-8 flex flex-col justify-center items-center text-center rounded-xl transition-all duration-500
                 ${currentTemplate.containerClass}
               `}
             >
